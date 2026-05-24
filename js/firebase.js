@@ -199,7 +199,6 @@ window.fbListenRealtime = function() {
    SIMPAN KE REALTIME DATABASE
 ══════════════════════════════════════════ */
 window.fbSimpanSemua = async function() {
-
   if (!window.FB.uid) return;
 
   showSyncBadge('syncing');
@@ -228,7 +227,6 @@ window.fbSimpanSemua = async function() {
     showSyncBadge('error');
 
   }
-
 };
 
 /* ══════════════════════════════════════════

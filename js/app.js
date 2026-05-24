@@ -38,14 +38,17 @@ let pengaturan     = dbGet(DB_KEY.pengaturan, {
 let sheetsUrl      = localStorage.getItem(DB_KEY.sheets) || '';
 let lastTrxData    = null;
 
-function simpanData() {
+window.simpanData = function() {
   dbSet(DB_KEY.produk, produk);
   dbSet(DB_KEY.cart, cart);
   dbSet(DB_KEY.laporan, laporan);
   dbSet(DB_KEY.statistik, statistikProduk);
   dbSet(DB_KEY.riwayat, riwayat);
   dbSet(DB_KEY.pengaturan, pengaturan);
-  if (sheetsUrl) localStorage.setItem(DB_KEY.sheets, sheetsUrl);
+
+  if (sheetsUrl) {
+    localStorage.setItem(DB_KEY.sheets, sheetsUrl);
+  }
 }
 
 /* ══════════════════════════════════════════

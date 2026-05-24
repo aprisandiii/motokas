@@ -692,12 +692,15 @@ function buildStruk({ noTrx, tanggal, waktu, kasir, metode, items, subtotal, dis
 ══════════════════════════════════════════ */
 function cetakStruklangsung() {
   const struHtml = document.getElementById('receipt').innerHTML;
-  if (!struHtml) return;
+  if (!struHtml) { showToast('Tidak ada struk untuk dicetak', 'error'); return; }
   const pa = document.getElementById('printArea');
-  pa.innerHTML = `<div style="font-family:'Courier New',monospace;font-size:12px;padding:10px;max-width:80mm;color:#000">${struHtml}</div>`;
-  window.print();
+  pa.innerHTML = struHtml;
+  pa.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    pa.style.display = 'none';
+  }, 300);
 }
-
 function cetakUlang(index) {
   const item = riwayat[index]; if (!item) return;
   const items = item.items && item.items.length

@@ -648,43 +648,79 @@ function checkout() {
    BUILD STRUK
 ══════════════════════════════════════════ */
 function buildStruk({ noTrx, tanggal, waktu, kasir, metode, items, subtotal, diskon, totalAkhir, bayar, kembalian }, ulang = false) {
-  const itemsHtml = items.map(item => `
-    <div class="rrow">
-      <span class="rn">${item.nama}</span>
-      <span class="rq">${item.qty}x${rupiah(item.harga)}</span>
-      <span class="rp">Rp ${rupiah(item.harga * item.qty)}</span>
-    </div>`).join('');
-  return `
-    <div class="rh">
-      <h3>${pengaturan.namaToko}</h3>
-      <p>${pengaturan.alamat}</p>
-      <p>Telp: ${pengaturan.telepon}</p>
-    </div>
-    <hr>
-    <div class="rno">No: ${noTrx}</div>
-    <div class="rrow"><span>Tanggal</span><span>${tanggal}</span></div>
-    <div class="rrow"><span>Waktu</span><span>${waktu}</span></div>
-    <div class="rrow"><span>Kasir</span><span>${kasir}</span></div>
-    <div class="rrow"><span>Pembayaran</span><span>${metode}</span></div>
-    <hr>
-    <div class="rrow" style="font-weight:bold;font-size:10px;color:#666">
-      <span class="rn">ITEM</span><span class="rq">QTY</span><span class="rp">SUBTOTAL</span>
-    </div>
-    <hr>
-    ${itemsHtml}
-    <hr>
-    <div class="rsum"><span>Subtotal</span><span>Rp ${rupiah(subtotal)}</span></div>
-    ${diskon > 0 ? `<div class="rsum"><span>Diskon</span><span>- Rp ${rupiah(diskon)}</span></div>` : ''}
-    <hr>
-    <div class="rtotal"><span>TOTAL</span><span>Rp ${rupiah(totalAkhir)}</span></div>
-    <div class="rsum"><span>${metode}</span><span>Rp ${rupiah(bayar)}</span></div>
-    ${metode === 'Tunai' ? `<div class="rsum" style="font-weight:bold"><span>Kembalian</span><span>Rp ${rupiah(kembalian)}</span></div>` : ''}
-    <hr>
-    ${ulang ? '<div style="text-align:center;font-size:10px;color:#888;margin-bottom:4px">*** CETAK ULANG ***</div>' : ''}
-    <div class="rfooter">
-      <p>${pengaturan.footer1}</p>
-      <p>${pengaturan.footer2}</p>
-    </div>`;
+  const W = 32; // lebar karakter struk
+  const line  = '─'.repeat(W);
+  const dline = '═'.repeat(W);
+
+  function pad(left, right, total) {
+    const gap = total - left.length - right.length;
+    return left + ' '.repeat(Math.max(1, gap)) + right;
+  }
+
+  function center(text, total) {
+    const sp = Math.max(0, Math.floor((total - text.length) / 2));
+    return ' '.repeat(sp) + text;
+  }
+
+  function wrapText(text, maxLen) {
+    if (text.length <= maxLen) return [text];
+    const words = text.split(' ');
+    const lines = [];
+    let current = '';
+    words.forEach(w => {
+      if ((current + ' ' + w).trim().length <= maxLen) {
+        current = (current + ' ' + w).trim();
+      } else {
+        if (current) lines.push(current);
+        current = w;
+      }
+    });
+    if (current) lines.push(current);
+    return lines;
+  }
+
+  let s = '';
+  s += center(pengaturan.namaToko.toUpperCase(), W) + '\n';
+  s += center(pengaturan.alamat, W) + '\n';
+  s += center('Telp: ' + pengaturan.telepon, W) + '\n';
+  s += dline + '\n';
+  if (ulang) s += center('*** CETAK ULANG ***', W) + '\n';
+  s += pad('No:', noTrx, W) + '\n';
+  s += pad('Tanggal:', tanggal, W) + '\n';
+  s += pad('Waktu:', waktu, W) + '\n';
+  s += pad('Kasir:', kasir, W) + '\n';
+  s += pad('Bayar:', metode, W) + '\n';
+  s += line + '\n';
+  s += pad('ITEM', 'SUBTOTAL', W) + '\n';
+  s += line + '\n';
+
+  items.forEach(item => {
+    const namaLines = wrapText(item.nama, W - 14);
+    namaLines.forEach((ln, i) => {
+      if (i === 0) {
+        const qtyHarga = item.qty + 'x' + rupiah(item.harga);
+        const sub      = 'Rp ' + rupiah(item.harga * item.qty);
+        s += ln + '\n';
+        s += pad('  ' + qtyHarga, sub, W) + '\n';
+      } else {
+        s += ln + '\n';
+      }
+    });
+  });
+
+  s += line + '\n';
+  s += pad('Subtotal:', 'Rp ' + rupiah(subtotal), W) + '\n';
+  if (diskon > 0) s += pad('Diskon:', '- Rp ' + rupiah(diskon), W) + '\n';
+  s += dline + '\n';
+  s += pad('TOTAL:', 'Rp ' + rupiah(totalAkhir), W) + '\n';
+  s += dline + '\n';
+  s += pad(metode + ':', 'Rp ' + rupiah(bayar), W) + '\n';
+  if (metode === 'Tunai') s += pad('Kembali:', 'Rp ' + rupiah(kembalian), W) + '\n';
+  s += line + '\n';
+  s += center(pengaturan.footer1, W) + '\n';
+  s += center(pengaturan.footer2, W) + '\n';
+
+  return `<pre style="font-family:'Courier New',monospace;font-size:12px;line-height:1.5;color:#000;white-space:pre;">${s}</pre>`;
 }
 
 /* ══════════════════════════════════════════

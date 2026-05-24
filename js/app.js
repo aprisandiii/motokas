@@ -722,44 +722,6 @@ function buildStruk({ noTrx, tanggal, waktu, kasir, metode, items, subtotal, dis
 
   return `<pre style="font-family:'Courier New',monospace;font-size:12px;line-height:1.5;color:#000;white-space:pre;">${s}</pre>`;
 }
-  const itemsHtml = items.map(item => `
-    <div class="rrow">
-      <span class="rn">${item.nama}</span>
-      <span class="rq">${item.qty}x${rupiah(item.harga)}</span>
-      <span class="rp">Rp ${rupiah(item.harga * item.qty)}</span>
-    </div>`).join('');
-  return `
-    <div class="rh">
-      <h3>${pengaturan.namaToko}</h3>
-      <p>${pengaturan.alamat}</p>
-      <p>Telp: ${pengaturan.telepon}</p>
-    </div>
-    <hr>
-    <div class="rno">No: ${noTrx}</div>
-    <div class="rrow"><span>Tanggal</span><span>${tanggal}</span></div>
-    <div class="rrow"><span>Waktu</span><span>${waktu}</span></div>
-    <div class="rrow"><span>Kasir</span><span>${kasir}</span></div>
-    <div class="rrow"><span>Pembayaran</span><span>${metode}</span></div>
-    <hr>
-    <div class="rrow" style="font-weight:bold;font-size:10px;color:#666">
-      <span class="rn">ITEM</span><span class="rq">QTY</span><span class="rp">SUBTOTAL</span>
-    </div>
-    <hr>
-    ${itemsHtml}
-    <hr>
-    <div class="rsum"><span>Subtotal</span><span>Rp ${rupiah(subtotal)}</span></div>
-    ${diskon > 0 ? `<div class="rsum"><span>Diskon</span><span>- Rp ${rupiah(diskon)}</span></div>` : ''}
-    <hr>
-    <div class="rtotal"><span>TOTAL</span><span>Rp ${rupiah(totalAkhir)}</span></div>
-    <div class="rsum"><span>${metode}</span><span>Rp ${rupiah(bayar)}</span></div>
-    ${metode === 'Tunai' ? `<div class="rsum" style="font-weight:bold"><span>Kembalian</span><span>Rp ${rupiah(kembalian)}</span></div>` : ''}
-    <hr>
-    ${ulang ? '<div style="text-align:center;font-size:10px;color:#888;margin-bottom:4px">*** CETAK ULANG ***</div>' : ''}
-    <div class="rfooter">
-      <p>${pengaturan.footer1}</p>
-      <p>${pengaturan.footer2}</p>
-    </div>`;
-}
 
 /* ══════════════════════════════════════════
    CETAK NOTA

@@ -1,0 +1,24 @@
+{
+  "name": "dityaMotor 88 — Kasir Digital",
+  "short_name": "dityaMotor",
+  "description": "Aplikasi kasir digital untuk bengkel motor",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1117",
+  "theme_color": "#f5c542",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

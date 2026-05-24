@@ -199,22 +199,36 @@ window.fbListenRealtime = function() {
    SIMPAN KE REALTIME DATABASE
 ══════════════════════════════════════════ */
 window.fbSimpanSemua = async function() {
+
   if (!window.FB.uid) return;
+
   showSyncBadge('syncing');
+
   try {
+
     await set(tokoRef('data'), {
-      produk:     window.produk         || [],
-      laporan:    window.laporan        || [],
-      riwayat:    window.riwayat        || [],
+      produk:     window.produk || [],
+      laporan:    window.laporan || [],
+      riwayat:    window.riwayat || [],
       statistik:  window.statistikProduk || {},
-      pengaturan: window.pengaturan     || {},
+      pengaturan: window.pengaturan || {},
       updatedAt:  Date.now()
     });
+
     showSyncBadge('synced');
+
+    setTimeout(() => {
+      showSyncBadge('online');
+    }, 2000);
+
   } catch(e) {
+
     console.error('fbSimpanSemua:', e);
+
     showSyncBadge('error');
+
   }
+
 };
 
 /* ══════════════════════════════════════════

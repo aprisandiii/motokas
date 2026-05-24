@@ -199,7 +199,8 @@ window.fbListenRealtime = function() {
    SIMPAN KE REALTIME DATABASE
 ══════════════════════════════════════════ */
 window.fbSimpanSemua = async function() {
-  if (!window.FB.uid) return;
+   console.log('fbSimpanSemua DIPANGGIL');
+   if (!window.FB.uid) return;
 
   showSyncBadge('syncing');
 

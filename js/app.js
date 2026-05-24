@@ -728,10 +728,14 @@ function buildStruk({ noTrx, tanggal, waktu, kasir, metode, items, subtotal, dis
 ══════════════════════════════════════════ */
 function cetakStruklangsung() {
   const struHtml = document.getElementById('receipt').innerHTML;
-  if (!struHtml) return;
+  if (!struHtml) { showToast('Tidak ada struk', 'error'); return; }
   const pa = document.getElementById('printArea');
-  pa.innerHTML = `<div style="font-family:'Courier New',monospace;font-size:12px;padding:10px;max-width:80mm;color:#000">${struHtml}</div>`;
-  window.print();
+  pa.innerHTML = struHtml;
+  pa.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    pa.style.display = 'none';
+  }, 300);
 }
 
 function cetakUlang(index) {
@@ -739,17 +743,20 @@ function cetakUlang(index) {
   const items = item.items && item.items.length
     ? item.items : [{ nama: item.detail || '-', qty: 1, harga: item.total }];
   const struHtml = buildStruk({
-    noTrx: item.noTrx || '-', tanggal: item.tanggal || item.waktu, waktu: item.waktu,
-    kasir: item.kasir || 'Admin', metode: item.metode || 'Tunai', items,
+    noTrx: item.noTrx || '-', tanggal: item.tanggal || item.waktu,
+    waktu: item.waktu, kasir: item.kasir || 'Admin',
+    metode: item.metode || 'Tunai', items,
     subtotal: item.subtotal || item.total, diskon: item.diskon || 0,
-    totalAkhir: item.total, bayar: item.bayar || item.total, kembalian: item.kembalian || 0
+    totalAkhir: item.total, bayar: item.bayar || item.total,
+    kembalian: item.kembalian || 0
   }, true);
   const pa = document.getElementById('printArea');
-  pa.innerHTML = `<div style="font-family:'Courier New',monospace;font-size:12px;padding:10px;max-width:80mm;color:#000">${struHtml}</div>`;
-  document.getElementById('receipt').innerHTML    = struHtml;
-  document.getElementById('receipt').style.display = 'block';
-  document.getElementById('btnCetak').style.display = 'block';
-  setTimeout(() => window.print(), 300);
+  pa.innerHTML = struHtml;
+  pa.style.display = 'block';
+  setTimeout(() => {
+    window.print();
+    pa.style.display = 'none';
+  }, 300);
 }
 
 /* ══════════════════════════════════════════

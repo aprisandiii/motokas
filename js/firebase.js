@@ -137,8 +137,14 @@ window.fbLoadAllData = async function() {
       if (data.pengaturan)     { window.pengaturan      = { ...window.pengaturan, ...data.pengaturan }; if (typeof window.terapkanPengaturan === 'function') window.terapkanPengaturan(); }
     }
     if (typeof window.updateDashboard === 'function') window.updateDashboard();
-    showSyncBadge('online');
-    if (typeof window.showToast === 'function') window.showToast('✅ Data cloud berhasil dimuat!', 'success');
+   showSyncBadge('synced');
+
+   setTimeout(() => {
+   showSyncBadge('online');
+}, 2000);
+
+if (typeof window.showToast === 'function')
+  window.showToast('✅ Data cloud berhasil dimuat!', 'success');
   } catch(e) {
     console.error('fbLoadAllData:', e);
     showSyncBadge('error');

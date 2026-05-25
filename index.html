@@ -1,422 +1,1995 @@
 <!DOCTYPE html>
 <html lang="id">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>dityaMotor 88 — Kasir Digital</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Motor Kasir Pro">
+<meta name="theme-color" content="#0f0f0f">
+<title>Motor Kasir Pro — Sistem Kasir Digital</title>
+<link rel="manifest" id="manifest-placeholder">
+<style>
+:root {
+  --bg: #0f0f0f;
+  --bg2: #1a1a1a;
+  --bg3: #232323;
+  --bg4: #2c2c2c;
+  --border: #2e2e2e;
+  --border2: #3a3a3a;
+  --text: #f0ede8;
+  --text2: #a0998f;
+  --text3: #5a5550;
+  --accent: #f5c542;
+  --accent2: #e6b030;
+  --accent3: #ffd966;
+  --red: #e05252;
+  --green: #4caf7d;
+  --blue: #5b9bd5;
+  --orange: #e8824a;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
 
-  <!-- PWA Meta -->
-  <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#f5c542">
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="dityaMotor">
+* { box-sizing: border-box; margin: 0; padding: 0; }
 
-  <!-- Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
 
-  <!-- SweetAlert2 -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+/* ========== PIN SCREEN ========== */
+#pin-screen {
+  position: fixed; inset: 0; z-index: 1000;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 32px;
+}
 
-  <!-- App CSS -->
-  <link rel="stylesheet" href="css/style.css">
+.pin-logo {
+  text-align: center;
+}
+.pin-logo .icon-wrap {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto 16px;
+  font-size: 32px;
+}
+.pin-logo h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; }
+.pin-logo p { color: var(--text2); font-size: 13px; margin-top: 4px; }
+
+.pin-dots {
+  display: flex; gap: 12px;
+}
+.pin-dot {
+  width: 14px; height: 14px; border-radius: 50%;
+  border: 2px solid var(--border2);
+  transition: all 0.2s;
+}
+.pin-dot.filled { background: var(--accent); border-color: var(--accent); }
+
+.pin-status {
+  font-size: 13px; color: var(--text2); height: 18px;
+  transition: color 0.2s;
+}
+.pin-status.error { color: var(--red); }
+.pin-status.success { color: var(--green); }
+
+.pin-grid {
+  display: grid; grid-template-columns: repeat(3, 72px);
+  gap: 10px;
+}
+.pin-btn {
+  height: 72px; border-radius: var(--radius);
+  border: 1px solid var(--border2);
+  background: var(--bg2);
+  color: var(--text);
+  font-size: 22px; font-weight: 600;
+  cursor: pointer;
+  transition: all 0.1s;
+  user-select: none;
+}
+.pin-btn:active { background: var(--bg4); transform: scale(0.96); }
+.pin-btn.del { font-size: 18px; background: var(--bg3); }
+.pin-btn.zero { grid-column: 2; }
+
+/* ========== INSTALL BANNER ========== */
+#install-banner {
+  display: none;
+  position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+  background: var(--bg2); border: 1px solid var(--border2);
+  border-radius: var(--radius); padding: 14px 18px;
+  display: none; align-items: center; gap: 12px;
+  z-index: 900; box-shadow: var(--shadow);
+  max-width: 340px; width: 90%;
+}
+#install-banner p { font-size: 13px; color: var(--text2); flex: 1; }
+.btn-install {
+  background: var(--accent); color: #000;
+  border: none; border-radius: var(--radius-sm);
+  padding: 8px 14px; font-size: 13px; font-weight: 600;
+  cursor: pointer; white-space: nowrap;
+}
+.btn-close-banner {
+  background: none; border: none; color: var(--text3);
+  font-size: 18px; cursor: pointer; padding: 4px;
+}
+
+/* ========== MAIN APP ========== */
+#app { display: none; min-height: 100vh; }
+
+/* Header */
+.app-header {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(15,15,15,0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+  height: 56px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-logo {
+  width: 32px; height: 32px; border-radius: 8px;
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px; font-weight: 700; color: #000;
+}
+.header-title { font-size: 15px; font-weight: 700; }
+.header-sub { font-size: 11px; color: var(--text3); }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+  width: 36px; height: 36px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--bg2);
+  color: var(--text2); font-size: 17px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.15s;
+}
+.icon-btn:hover { border-color: var(--border2); background: var(--bg3); color: var(--text); }
+.icon-btn.active { background: var(--accent); color: #000; border-color: var(--accent); }
+
+/* Bottom Nav */
+.bottom-nav {
+  position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
+  background: rgba(15,15,15,0.95);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--border);
+  display: flex;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.nav-item {
+  flex: 1; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; padding: 10px 0;
+  cursor: pointer; border: none; background: none;
+  color: var(--text3); font-size: 10px; font-weight: 500;
+  transition: all 0.15s;
+  position: relative;
+}
+.nav-item .nav-icon { font-size: 20px; line-height: 1; }
+.nav-item.active { color: var(--accent); }
+.nav-item .badge {
+  position: absolute; top: 6px;
+  background: var(--red); color: #fff;
+  font-size: 9px; font-weight: 700;
+  min-width: 16px; height: 16px;
+  border-radius: 8px; padding: 0 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* Pages */
+.page { display: none; padding: 16px 16px 90px; }
+.page.active { display: block; }
+
+/* ========== DASHBOARD ========== */
+.stat-grid {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 10px; margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  position: relative; overflow: hidden;
+}
+.stat-card::before {
+  content: ''; position: absolute;
+  top: 0; left: 0; right: 0; height: 2px;
+}
+.stat-card.omzet::before { background: var(--accent); }
+.stat-card.laba::before { background: var(--green); }
+.stat-card.trx::before { background: var(--blue); }
+.stat-card.kritis::before { background: var(--red); }
+.stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+.stat-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
+.stat-card.omzet .stat-value { color: var(--accent); }
+.stat-card.laba .stat-value { color: var(--green); }
+.stat-card.trx .stat-value { color: var(--blue); }
+.stat-card.kritis .stat-value { color: var(--red); }
+
+.section-title {
+  font-size: 12px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.8px;
+  margin-bottom: 10px; margin-top: 20px;
+}
+
+/* Chart */
+.chart-wrap {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+  margin-bottom: 16px;
+}
+.chart-title {
+  font-size: 13px; font-weight: 600; margin-bottom: 12px;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.chart-legend { display: flex; gap: 12px; }
+.legend-item { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--text2); }
+.legend-dot { width: 8px; height: 8px; border-radius: 50%; }
+canvas#chartOmzet { width: 100% !important; }
+
+/* Stok Kritis */
+.kritis-list { display: flex; flex-direction: column; gap: 8px; }
+.kritis-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 10px 12px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.kritis-name { font-size: 13px; font-weight: 500; }
+.kritis-stok { font-size: 11px; color: var(--red); font-weight: 600; }
+.badge-kritis {
+  background: rgba(224,82,82,0.15); color: var(--red);
+  font-size: 10px; font-weight: 700; padding: 3px 8px;
+  border-radius: 20px;
+}
+
+/* ========== PRODUK ========== */
+.search-bar {
+  position: relative; margin-bottom: 12px;
+}
+.search-bar input {
+  width: 100%; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 10px 12px 10px 36px; font-size: 14px;
+}
+.search-bar .search-icon {
+  position: absolute; left: 10px; top: 50%; transform: translateY(-50%);
+  color: var(--text3); font-size: 16px;
+}
+
+.filter-scroll {
+  display: flex; gap: 8px; overflow-x: auto;
+  padding-bottom: 8px; margin-bottom: 12px;
+  scrollbar-width: none;
+}
+.filter-scroll::-webkit-scrollbar { display: none; }
+.filter-chip {
+  white-space: nowrap; padding: 6px 14px;
+  border: 1px solid var(--border2); border-radius: 20px;
+  font-size: 12px; font-weight: 500; color: var(--text2);
+  cursor: pointer; background: var(--bg2);
+  transition: all 0.15s;
+}
+.filter-chip.active {
+  background: var(--accent); color: #000;
+  border-color: var(--accent);
+}
+
+.produk-list { display: flex; flex-direction: column; gap: 8px; }
+.produk-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+  display: flex; align-items: center; gap: 12px;
+  transition: border-color 0.15s;
+}
+.produk-card:hover { border-color: var(--border2); }
+.produk-icon {
+  width: 40px; height: 40px; border-radius: 8px;
+  background: var(--bg3); display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.produk-info { flex: 1; min-width: 0; }
+.produk-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.produk-meta { display: flex; gap: 8px; margin-top: 3px; align-items: center; }
+.produk-price { font-size: 13px; color: var(--accent); font-weight: 600; }
+.produk-stok { font-size: 11px; color: var(--text3); }
+.produk-stok.low { color: var(--red); }
+.produk-cat { font-size: 10px; background: var(--bg3); color: var(--text3); padding: 2px 7px; border-radius: 10px; }
+.produk-actions { display: flex; gap: 6px; }
+.btn-add-cart {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  background: var(--accent); border: none; color: #000;
+  font-size: 20px; font-weight: 700; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.1s;
+}
+.btn-add-cart:active { transform: scale(0.92); }
+.btn-add-cart.disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+.btn-edit-prod {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  background: var(--bg3); border: 1px solid var(--border2); color: var(--text2);
+  font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 80px; right: 18px; z-index: 200;
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--accent); border: none; color: #000;
+  font-size: 26px; font-weight: 700;
+  cursor: pointer; box-shadow: 0 4px 16px rgba(245,197,66,0.4);
+  display: flex; align-items: center; justify-content: center;
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.fab:active { transform: scale(0.92); box-shadow: 0 2px 8px rgba(245,197,66,0.3); }
+
+/* ========== KASIR / KERANJANG ========== */
+.kasir-layout { display: flex; flex-direction: column; gap: 12px; }
+
+.cart-empty {
+  text-align: center; padding: 48px 20px;
+  color: var(--text3);
+}
+.cart-empty .empty-icon { font-size: 48px; margin-bottom: 12px; }
+.cart-empty p { font-size: 14px; }
+
+.cart-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; }
+.cart-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 10px 12px;
+  display: flex; align-items: center; gap: 10px;
+}
+.cart-item-name { flex: 1; font-size: 13px; font-weight: 500; }
+.cart-item-price { font-size: 12px; color: var(--text2); }
+.cart-qty-ctrl { display: flex; align-items: center; gap: 8px; }
+.qty-btn {
+  width: 28px; height: 28px; border-radius: 6px;
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+}
+.qty-val { font-size: 14px; font-weight: 600; min-width: 24px; text-align: center; }
+.cart-sub { font-size: 13px; font-weight: 600; min-width: 70px; text-align: right; color: var(--accent); }
+.btn-rm { background: none; border: none; color: var(--text3); font-size: 18px; cursor: pointer; padding: 4px; }
+.btn-rm:hover { color: var(--red); }
+
+/* Checkout Card */
+.checkout-card {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px;
+}
+.checkout-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 13px;
+}
+.checkout-row.total {
+  border-top: 1px solid var(--border2); margin-top: 6px; padding-top: 10px;
+  font-size: 17px; font-weight: 700;
+}
+.checkout-row.total span:last-child { color: var(--accent); }
+
+.diskon-wrap { display: flex; gap: 8px; margin: 10px 0; }
+.diskon-wrap input {
+  flex: 1; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 8px 10px; font-size: 13px;
+}
+.diskon-toggle { display: flex; border: 1px solid var(--border2); border-radius: var(--radius-sm); overflow: hidden; }
+.diskon-toggle button {
+  padding: 8px 12px; background: var(--bg3); border: none;
+  color: var(--text2); font-size: 12px; cursor: pointer;
+  transition: all 0.15s;
+}
+.diskon-toggle button.active { background: var(--accent); color: #000; font-weight: 600; }
+
+.payment-methods { display: flex; gap: 8px; margin: 10px 0; }
+.payment-btn {
+  flex: 1; padding: 10px 6px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--bg3);
+  color: var(--text2); font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all 0.15s; text-align: center;
+}
+.payment-btn.active { border-color: var(--accent); background: rgba(245,197,66,0.1); color: var(--accent); }
+
+.input-full {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 9px 12px; font-size: 13px; margin-bottom: 8px;
+}
+.input-full:focus { outline: none; border-color: var(--accent); }
+
+.uang-bayar-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 6px 0; font-size: 13px; color: var(--text2);
+}
+.uang-bayar-row.kembalian { font-weight: 600; color: var(--green); font-size: 14px; }
+
+.btn-checkout {
+  width: 100%; padding: 14px; border-radius: var(--radius);
+  background: var(--accent); border: none; color: #000;
+  font-size: 15px; font-weight: 700; cursor: pointer;
+  transition: all 0.15s; margin-top: 8px;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-checkout:active { transform: scale(0.99); }
+.btn-checkout:disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+
+.btn-cetak {
+  width: 100%; padding: 10px; border-radius: var(--radius);
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 13px; font-weight: 500;
+  cursor: pointer; margin-top: 6px;
+}
+
+/* ========== LAPORAN ========== */
+.date-filter {
+  display: flex; gap: 8px; margin-bottom: 12px;
+}
+.date-filter input {
+  flex: 1; background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 8px 10px; font-size: 13px;
+}
+.btn-filter-date {
+  padding: 8px 14px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border2); background: var(--bg2);
+  color: var(--text2); font-size: 12px; cursor: pointer;
+}
+
+.export-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 8px; margin-bottom: 16px;
+}
+.export-btn {
+  padding: 10px 8px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--bg2);
+  color: var(--text2); font-size: 11px; font-weight: 500;
+  cursor: pointer; text-align: center; transition: all 0.15s;
+}
+.export-btn:hover { border-color: var(--accent); color: var(--accent); }
+.export-btn .exp-icon { font-size: 18px; display: block; margin-bottom: 4px; }
+
+.laporan-table-wrap {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 16px;
+}
+.laporan-table {
+  width: 100%; border-collapse: collapse; font-size: 12px;
+}
+.laporan-table th {
+  padding: 10px 12px; text-align: left;
+  background: var(--bg3); color: var(--text3);
+  font-size: 10px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;
+  border-bottom: 1px solid var(--border);
+}
+.laporan-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+.laporan-table tr:last-child td { border-bottom: none; }
+.laporan-table tr:hover td { background: var(--bg3); }
+
+.riwayat-item {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 12px 14px;
+  margin-bottom: 8px;
+}
+.riwayat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
+.riwayat-waktu { font-size: 11px; color: var(--text3); }
+.riwayat-total { font-size: 15px; font-weight: 700; color: var(--accent); }
+.riwayat-detail { font-size: 12px; color: var(--text2); line-height: 1.6; }
+.badge-payment {
+  font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px;
+}
+.badge-payment.tunai { background: rgba(76,175,125,0.15); color: var(--green); }
+.badge-payment.transfer { background: rgba(91,155,213,0.15); color: var(--blue); }
+.badge-payment.qris { background: rgba(232,130,74,0.15); color: var(--orange); }
+
+/* ========== PENGATURAN ========== */
+.settings-section {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius); overflow: hidden; margin-bottom: 12px;
+}
+.settings-header {
+  padding: 10px 14px; background: var(--bg3);
+  font-size: 11px; font-weight: 600; color: var(--text3);
+  text-transform: uppercase; letter-spacing: 0.6px;
+  border-bottom: 1px solid var(--border);
+}
+.settings-row {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 6px;
+}
+.settings-row:last-child { border-bottom: none; }
+.settings-label { font-size: 12px; color: var(--text2); }
+.settings-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 9px 12px; font-size: 14px;
+}
+.settings-input:focus { outline: none; border-color: var(--accent); }
+
+.settings-toggle-row {
+  padding: 12px 14px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.settings-toggle-row:last-child { border-bottom: none; }
+.toggle-info .toggle-title { font-size: 14px; }
+.toggle-info .toggle-desc { font-size: 11px; color: var(--text3); margin-top: 2px; }
+.toggle {
+  width: 44px; height: 24px; border-radius: 12px;
+  background: var(--bg4); border: none; cursor: pointer;
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.toggle.on { background: var(--accent); }
+.toggle::after {
+  content: ''; position: absolute;
+  width: 18px; height: 18px; border-radius: 50%;
+  background: #fff; top: 3px; left: 3px;
+  transition: left 0.2s;
+}
+.toggle.on::after { left: 23px; }
+
+.btn-primary {
+  padding: 11px 20px; border-radius: var(--radius-sm);
+  background: var(--accent); border: none; color: #000;
+  font-size: 13px; font-weight: 700; cursor: pointer;
+}
+.btn-secondary {
+  padding: 11px 20px; border-radius: var(--radius-sm);
+  background: var(--bg3); border: 1px solid var(--border2);
+  color: var(--text2); font-size: 13px; cursor: pointer;
+}
+.btn-danger {
+  padding: 11px 20px; border-radius: var(--radius-sm);
+  background: rgba(224,82,82,0.12); border: 1px solid rgba(224,82,82,0.3);
+  color: var(--red); font-size: 13px; font-weight: 600; cursor: pointer;
+}
+
+/* ========== MODALS ========== */
+.modal-overlay {
+  position: fixed; inset: 0; z-index: 500;
+  background: rgba(0,0,0,0.7); backdrop-filter: blur(4px);
+  display: none; align-items: flex-end; justify-content: center;
+}
+.modal-overlay.show { display: flex; }
+.modal-sheet {
+  background: var(--bg2); border-radius: 18px 18px 0 0;
+  padding: 20px 18px 32px;
+  width: 100%; max-width: 480px;
+  border-top: 1px solid var(--border2);
+  max-height: 90vh; overflow-y: auto;
+}
+.modal-handle {
+  width: 36px; height: 4px; border-radius: 2px;
+  background: var(--border2); margin: 0 auto 18px;
+}
+.modal-title {
+  font-size: 17px; font-weight: 700; margin-bottom: 16px;
+}
+.modal-row { margin-bottom: 12px; }
+.modal-label { font-size: 12px; color: var(--text2); margin-bottom: 5px; }
+.modal-input {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 10px 12px; font-size: 14px;
+}
+.modal-input:focus { outline: none; border-color: var(--accent); }
+.modal-select {
+  width: 100%; background: var(--bg3); border: 1px solid var(--border2);
+  border-radius: var(--radius-sm); color: var(--text);
+  padding: 10px 12px; font-size: 14px; cursor: pointer;
+}
+.modal-footer { display: flex; gap: 8px; margin-top: 18px; }
+.modal-footer button { flex: 1; padding: 12px; border-radius: var(--radius-sm); font-size: 14px; font-weight: 600; cursor: pointer; }
+
+/* Nota */
+.nota-area {
+  background: #fff; color: #000;
+  padding: 20px; border-radius: var(--radius);
+  font-family: 'Courier New', monospace; font-size: 12px;
+  line-height: 1.8; white-space: pre-wrap;
+  margin-bottom: 12px;
+}
+
+/* Toast */
+#toast {
+  position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+  background: var(--bg2); border: 1px solid var(--border2);
+  color: var(--text); padding: 10px 18px;
+  border-radius: 20px; font-size: 13px; font-weight: 500;
+  z-index: 9999; opacity: 0;
+  transition: opacity 0.25s; pointer-events: none;
+  white-space: nowrap; box-shadow: var(--shadow);
+}
+#toast.show { opacity: 1; }
+#toast.success { border-color: var(--green); color: var(--green); }
+#toast.error { border-color: var(--red); color: var(--red); }
+
+/* Responsive */
+@media (min-width: 480px) {
+  .stat-grid { grid-template-columns: repeat(4, 1fr); }
+}
+
+/* Empty states */
+.empty-state {
+  text-align: center; padding: 32px 20px;
+  color: var(--text3); font-size: 13px;
+}
+.empty-state .empty-icon { font-size: 36px; margin-bottom: 8px; }
+
+/* PIN change steps */
+.pin-step { display: none; }
+.pin-step.active { display: block; }
+
+/* Sheets Status */
+.sheets-status {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 14px; border-radius: var(--radius-sm);
+  background: var(--bg3); font-size: 13px; margin-bottom: 10px;
+}
+.sheets-dot {
+  width: 8px; height: 8px; border-radius: 50%; background: var(--text3);
+}
+.sheets-dot.connected { background: var(--green); }
+
+@media print {
+  body * { visibility: hidden; }
+  .nota-area, .nota-area * { visibility: visible; }
+  .nota-area { position: fixed; top: 0; left: 0; width: 100%; }
+}
+</style>
 </head>
 <body>
 
-<!-- ══ LOGIN PIN SCREEN ══ -->
-<div id="loginScreen">
-  <div class="login-card">
-    <div class="login-logo">🔧</div>
-    <h2>dityaMotor 88</h2>
-    <p>Masukkan PIN untuk membuka kasir</p>
-    <div class="pin-dots">
-      <div class="pin-dot" id="dot0"></div>
-      <div class="pin-dot" id="dot1"></div>
-      <div class="pin-dot" id="dot2"></div>
-      <div class="pin-dot" id="dot3"></div>
+<!-- PIN Screen -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <div class="icon-wrap">🔧</div>
+    <h1 id="pin-store-name">Motor Kasir Pro</h1>
+    <p id="pin-store-addr">Masukkan PIN untuk membuka kasir</p>
+  </div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-status" id="pinStatus">PIN default: 1234</div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinInput('1')">1</button>
+    <button class="pin-btn" onclick="pinInput('2')">2</button>
+    <button class="pin-btn" onclick="pinInput('3')">3</button>
+    <button class="pin-btn" onclick="pinInput('4')">4</button>
+    <button class="pin-btn" onclick="pinInput('5')">5</button>
+    <button class="pin-btn" onclick="pinInput('6')">6</button>
+    <button class="pin-btn" onclick="pinInput('7')">7</button>
+    <button class="pin-btn" onclick="pinInput('8')">8</button>
+    <button class="pin-btn" onclick="pinInput('9')">9</button>
+    <button class="pin-btn zero" onclick="pinInput('0')">0</button>
+    <button class="pin-btn del" onclick="pinDel()">⌫</button>
+  </div>
+  <p style="font-size:11px;color:var(--text3);margin-top:-16px;">Lupa PIN? <span style="color:var(--accent);cursor:pointer" onclick="resetPinPrompt()">Reset via kode rahasia</span></p>
+</div>
+
+<!-- Install Banner -->
+<div id="install-banner">
+  <p>📱 Install sebagai aplikasi di perangkat Anda</p>
+  <button class="btn-install" onclick="installPWA()">Install</button>
+  <button class="btn-close-banner" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- Main App -->
+<div id="app">
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-left">
+      <div class="header-logo">🔧</div>
+      <div>
+        <div class="header-title" id="hdr-name">Motor Kasir Pro</div>
+        <div class="header-sub" id="hdr-sub">v4.0 Pro</div>
+      </div>
     </div>
-    <p class="pin-error-msg" id="pinErrorMsg"></p>
-    <div class="pin-pad">
-      <button class="pin-key" onclick="pinPress('1')">1</button>
-      <button class="pin-key" onclick="pinPress('2')">2</button>
-      <button class="pin-key" onclick="pinPress('3')">3</button>
-      <button class="pin-key" onclick="pinPress('4')">4</button>
-      <button class="pin-key" onclick="pinPress('5')">5</button>
-      <button class="pin-key" onclick="pinPress('6')">6</button>
-      <button class="pin-key" onclick="pinPress('7')">7</button>
-      <button class="pin-key" onclick="pinPress('8')">8</button>
-      <button class="pin-key" onclick="pinPress('9')">9</button>
-      <button class="pin-key" onclick="pinPress('0')" style="grid-column:2">0</button>
-      <button class="pin-key del" onclick="pinDel()">⌫</button>
+    <div class="header-actions">
+      <button class="icon-btn" title="Ganti PIN" onclick="openModal('modal-pin')">🔑</button>
+      <button class="icon-btn" title="Kunci" onclick="lockApp()">🔒</button>
     </div>
-    <p style="font-size:10px;color:var(--text3);margin-top:16px">PIN default: <strong style="color:var(--gold)">1234</strong></p>
+  </div>
+
+  <!-- Pages -->
+  <div id="page-dashboard" class="page active">
+    <div class="stat-grid">
+      <div class="stat-card omzet">
+        <div class="stat-label">Omzet Hari Ini</div>
+        <div class="stat-value" id="stat-omzet">Rp 0</div>
+      </div>
+      <div class="stat-card laba">
+        <div class="stat-label">Laba Hari Ini</div>
+        <div class="stat-value" id="stat-laba">Rp 0</div>
+      </div>
+      <div class="stat-card trx">
+        <div class="stat-label">Transaksi</div>
+        <div class="stat-value" id="stat-trx">0</div>
+      </div>
+      <div class="stat-card kritis">
+        <div class="stat-label">Stok Kritis</div>
+        <div class="stat-value" id="stat-kritis">0</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span>📈 Omzet & Laba 7 Hari</span>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>Omzet</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Laba</span>
+        </div>
+      </div>
+      <canvas id="chartOmzet" height="160"></canvas>
+    </div>
+
+    <div class="section-title">⚠️ Stok Kritis</div>
+    <div class="kritis-list" id="kritis-list">
+      <div class="empty-state"><div class="empty-icon">✅</div>Semua stok aman</div>
+    </div>
+
+    <div class="section-title" style="margin-top:20px">🏆 Produk Terlaris (Bulan Ini)</div>
+    <div id="terlaris-list">
+      <div class="empty-state"><div class="empty-icon">📦</div>Belum ada data penjualan</div>
+    </div>
+  </div>
+
+  <div id="page-produk" class="page">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-produk" placeholder="Cari produk..." oninput="renderProduk()">
+    </div>
+    <div class="filter-scroll" id="filter-cat">
+      <span class="filter-chip active" data-cat="Semua" onclick="setFilter(this)">Semua</span>
+      <span class="filter-chip" data-cat="Oli" onclick="setFilter(this)">Oli</span>
+      <span class="filter-chip" data-cat="Spare Part" onclick="setFilter(this)">Spare Part</span>
+      <span class="filter-chip" data-cat="Aksesoris" onclick="setFilter(this)">Aksesoris</span>
+      <span class="filter-chip" data-cat="Ban" onclick="setFilter(this)">Ban</span>
+      <span class="filter-chip" data-cat="Aki" onclick="setFilter(this)">Aki</span>
+      <span class="filter-chip" data-cat="Lainnya" onclick="setFilter(this)">Lainnya</span>
+    </div>
+    <div class="produk-list" id="produk-list"></div>
+    <button class="fab" onclick="openModal('modal-tambah-produk')">＋</button>
+  </div>
+
+  <div id="page-kasir" class="page">
+    <div class="kasir-layout">
+      <div id="cart-container">
+        <div class="cart-empty" id="cart-empty">
+          <div class="empty-icon">🛒</div>
+          <p>Keranjang kosong</p>
+          <p style="font-size:11px;margin-top:4px">Tambah produk dari tab Produk</p>
+        </div>
+        <div class="cart-list" id="cart-list" style="display:none"></div>
+      </div>
+
+      <div class="checkout-card" id="checkout-card">
+        <div class="checkout-row">
+          <span style="color:var(--text2)">Subtotal</span>
+          <span id="co-subtotal">Rp 0</span>
+        </div>
+
+        <div style="margin:10px 0">
+          <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Diskon</div>
+          <div class="diskon-wrap">
+            <input type="number" id="diskon-val" placeholder="0" oninput="hitungTotal()" min="0">
+            <div class="diskon-toggle">
+              <button class="active" id="diskon-rp" onclick="setDiskonMode('rp')">Rp</button>
+              <button id="diskon-pct" onclick="setDiskonMode('pct')">%</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="checkout-row">
+          <span style="color:var(--text2)">Diskon</span>
+          <span style="color:var(--red)" id="co-diskon">- Rp 0</span>
+        </div>
+        <div class="checkout-row total">
+          <span>TOTAL</span>
+          <span id="co-total">Rp 0</span>
+        </div>
+
+        <div style="margin-top:12px;font-size:12px;color:var(--text2);margin-bottom:6px">Metode Pembayaran</div>
+        <div class="payment-methods">
+          <button class="payment-btn active" onclick="setPayment(this,'tunai')">💵 Tunai</button>
+          <button class="payment-btn" onclick="setPayment(this,'transfer')">🏦 Transfer</button>
+          <button class="payment-btn" onclick="setPayment(this,'qris')">📱 QRIS</button>
+        </div>
+
+        <div id="tunai-section">
+          <input type="number" class="input-full" id="uang-bayar" placeholder="Jumlah bayar (Rp)" oninput="hitungKembalian()">
+          <div class="uang-bayar-row">
+            <span>Kembalian</span>
+            <span id="kembalian">Rp 0</span>
+          </div>
+          <div class="uang-bayar-row kembalian" id="kembalian-row" style="display:none">
+            <span>💵 Kembalian</span>
+            <span id="kembalian-val">Rp 0</span>
+          </div>
+        </div>
+
+        <input type="text" class="input-full" id="kasir-name" placeholder="Nama kasir (opsional)">
+
+        <button class="btn-checkout" id="btn-checkout" onclick="checkout()" disabled>
+          ✔ Proses Checkout
+        </button>
+        <button class="btn-cetak" onclick="openModal('modal-nota')">🖨 Cetak Nota Terakhir</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="page-laporan" class="page">
+    <div class="date-filter">
+      <input type="date" id="date-dari" onchange="renderLaporan()">
+      <input type="date" id="date-sampai" onchange="renderLaporan()">
+      <button class="btn-filter-date" onclick="resetDateFilter()">Reset</button>
+    </div>
+
+    <div class="section-title">📤 Export Data</div>
+    <div class="export-grid">
+      <button class="export-btn" onclick="exportCSV()"><span class="exp-icon">📊</span>CSV</button>
+      <button class="export-btn" onclick="exportTXT()"><span class="exp-icon">📄</span>TXT</button>
+      <button class="export-btn" onclick="exportJSON()"><span class="exp-icon">💾</span>JSON</button>
+      <button class="export-btn" onclick="document.getElementById('restore-file').click()"><span class="exp-icon">📂</span>Restore</button>
+      <button class="export-btn" onclick="kirimSheets()"><span class="exp-icon">📗</span>Sheets</button>
+      <button class="export-btn" onclick="openModal('modal-sheets')"><span class="exp-icon">🔗</span>Koneksi</button>
+    </div>
+    <input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreJSON(event)">
+
+    <div class="section-title" style="margin-top:16px">📊 Laporan Harian</div>
+    <div class="laporan-table-wrap">
+      <table class="laporan-table" id="laporan-table">
+        <thead>
+          <tr>
+            <th>Tanggal</th>
+            <th>Omzet</th>
+            <th>Laba</th>
+            <th>Trx</th>
+            <th>Terlaris</th>
+          </tr>
+        </thead>
+        <tbody id="laporan-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-danger" style="width:100%;margin-bottom:16px" onclick="resetLaporan()">🗑 Reset Laporan</button>
+
+    <div class="section-title">🧾 Riwayat Transaksi</div>
+    <div style="margin-bottom:10px">
+      <select id="filter-payment" class="modal-select" style="font-size:13px" onchange="renderRiwayat()">
+        <option value="">Semua Metode</option>
+        <option value="tunai">Tunai</option>
+        <option value="transfer">Transfer</option>
+        <option value="qris">QRIS</option>
+      </select>
+    </div>
+    <div id="riwayat-list"></div>
+    <button class="btn-danger" style="width:100%;margin-top:8px" onclick="resetRiwayat()">🗑 Reset Riwayat</button>
+  </div>
+
+  <div id="page-settings" class="page">
+    <div class="section-title">🏪 Informasi Toko</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="settings-label">Nama Toko</div>
+        <input class="settings-input" id="set-nama" placeholder="Nama toko" oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Alamat</div>
+        <input class="settings-input" id="set-alamat" placeholder="Alamat toko" oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">No. Telepon</div>
+        <input class="settings-input" id="set-telp" placeholder="08xx-xxxx-xxxx" oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Footer Nota 1</div>
+        <input class="settings-input" id="set-footer1" placeholder="Terima kasih telah berbelanja!" oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Footer Nota 2</div>
+        <input class="settings-input" id="set-footer2" placeholder="Barang yang sudah dibeli tidak dapat dikembalikan" oninput="saveSettings()">
+      </div>
+    </div>
+
+    <div class="section-title">🔗 Google Sheets</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="sheets-status">
+          <div class="sheets-dot" id="sheets-dot"></div>
+          <span id="sheets-status-text">Belum terhubung</span>
+        </div>
+        <div class="settings-label">URL Apps Script</div>
+        <input class="settings-input" id="set-sheets-url" placeholder="https://script.google.com/macros/s/..." oninput="saveSettings()">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-primary" onclick="tesSheets()" style="flex:1">🔌 Tes Koneksi</button>
+          <button class="btn-secondary" onclick="openModal('modal-sheets')" style="flex:1">📖 Cara Setup</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">⚙️ Preferensi</div>
+    <div class="settings-section">
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Auto Kirim ke Sheets</div>
+          <div class="toggle-desc">Kirim otomatis setiap checkout</div>
+        </div>
+        <button class="toggle" id="toggle-auto-sheets" onclick="toggleSetting('auto_sheets', this)"></button>
+      </div>
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Tampilkan Laba di Struk</div>
+          <div class="toggle-desc">Sembunyikan HPP dari kasir biasa</div>
+        </div>
+        <button class="toggle" id="toggle-show-laba" onclick="toggleSetting('show_laba', this)"></button>
+      </div>
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Alert Stok Kritis</div>
+          <div class="toggle-desc">Notifikasi saat stok di bawah minimum</div>
+        </div>
+        <button class="toggle on" id="toggle-stok-alert" onclick="toggleSetting('stok_alert', this)"></button>
+      </div>
+    </div>
+
+    <div class="section-title">🔐 Keamanan</div>
+    <div class="settings-section">
+      <div class="settings-row" style="flex-direction:row;align-items:center;justify-content:space-between">
+        <div>
+          <div style="font-size:14px">Ganti PIN</div>
+          <div class="settings-label">PIN 4 digit</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('modal-pin')">Ganti</button>
+      </div>
+    </div>
+
+    <div class="section-title">⚠️ Zona Berbahaya</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <button class="btn-danger" style="width:100%" onclick="resetAllData()">🗑 Reset Semua Data</button>
+        <div class="settings-label" style="margin-top:6px">Hapus semua produk, laporan, dan riwayat transaksi</div>
+      </div>
+    </div>
+
+    <div style="text-align:center;color:var(--text3);font-size:11px;margin-top:24px;padding-bottom:20px">
+      Motor Kasir Pro v4.0 — Build 2025<br>Sistem Kasir Digital untuk Toko Motor
+    </div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="navTo('dashboard',this)">
+      <span class="nav-icon">🏠</span>
+      <span>Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="navTo('produk',this)">
+      <span class="nav-icon">📦</span>
+      <span>Produk</span>
+    </button>
+    <button class="nav-item" onclick="navTo('kasir',this)" style="position:relative">
+      <span class="nav-icon">🛒</span>
+      <span>Kasir</span>
+      <span class="badge" id="cart-badge" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="navTo('laporan',this)">
+      <span class="nav-icon">📊</span>
+      <span>Laporan</span>
+    </button>
+    <button class="nav-item" onclick="navTo('settings',this)">
+      <span class="nav-icon">⚙️</span>
+      <span>Pengaturan</span>
+    </button>
   </div>
 </div>
 
-<!-- ══ APP CONTENT ══ -->
-<div id="appContent" style="display:none">
-
-<!-- PWA Install Banner -->
-<div id="pwaInstallBanner">
-  <span>📱 Install dityaMotor 88 sebagai aplikasi di perangkat Anda!</span>
-  <div style="display:flex;gap:8px">
-    <button onclick="installPWA()">Install</button>
-    <button onclick="dismissPWA()" style="background:transparent;color:var(--text2);border:1px solid var(--border2)">✕</button>
-  </div>
-</div>
-
-<!-- TOPBAR -->
-<div id="topbar">
-  <div class="topbar-brand">
-    <div class="logo">🔧</div>
-    <div>
-      <h1 id="headerNamaToko">dityaMotor 88</h1>
-      <p id="headerAlamat">Jl.Sariwangi Selatan — Telp: 0855-2444-0968</p>
+<!-- Modal: Tambah/Edit Produk -->
+<div class="modal-overlay" id="modal-tambah-produk">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-produk-title">Tambah Produk</div>
+    <input type="hidden" id="edit-produk-id">
+    <div class="modal-row">
+      <div class="modal-label">Nama Produk *</div>
+      <input class="modal-input" id="prod-nama" placeholder="Contoh: Oli Fastron 1L">
     </div>
-  </div>
-  <div class="topbar-actions">
-    <span class="version-tag">v3.0</span>
-    <button onclick="logout()">🔒 <span class="btn-label">Kunci</span></button>
-    <button onclick="gantiPin()">🔑 <span class="btn-label">Ganti PIN</span></button>
-    <button onclick="bukaModalPengaturan()">⚙️ <span class="btn-label">Pengaturan</span></button>
-    <button onclick="bukaModalSheets()" style="background:rgba(34,197,94,0.12);border-color:rgba(34,197,94,0.3);color:#22c55e">🔗 <span class="btn-label">Sheets</span></button>
-  </div>
-</div>
-
-<!-- ALERT STOK -->
-<div id="stokAlert"></div>
-
-<!-- DASHBOARD -->
-<div class="dashboard">
-  <div class="dash-card green">
-    <div class="d-label">Omzet Hari Ini</div>
-    <div class="d-value" id="dashOmzet">Rp 0</div>
-  </div>
-  <div class="dash-card gold">
-    <div class="d-label">Laba Hari Ini</div>
-    <div class="d-value" id="dashLaba">Rp 0</div>
-  </div>
-  <div class="dash-card blue">
-    <div class="d-label">Transaksi</div>
-    <div class="d-value" id="dashTrx">0</div>
-  </div>
-  <div class="dash-card red">
-    <div class="d-label">Stok Kritis</div>
-    <div class="d-value" id="dashStokKritis">0</div>
-  </div>
-
-  <!-- GRAFIK 7 HARI -->
-  <div class="chart-card">
-    <div class="chart-header">
-      <h3>📈 Grafik Omzet & Laba 7 Hari Terakhir</h3>
-    </div>
-    <canvas id="salesChartCanvas"></canvas>
-  </div>
-</div>
-
-<!-- MAIN -->
-<div class="main">
-
-  <!-- ── LEFT COL ── -->
-  <div class="left-col">
-
-    <!-- PRODUK CARD -->
-    <div class="card">
-      <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-tambah',this)">+ Tambah Produk</button>
-        <button class="tab-btn" onclick="switchTab('tab-daftar',this)">📦 Daftar Produk</button>
-      </div>
-
-      <!-- Tab Tambah -->
-      <div class="tab-panel active card-body" id="tab-tambah">
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Nama Produk</label>
-            <input type="text" id="namaProduk" placeholder="Nama produk...">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Kategori</label>
-            <select id="kategoriProduk">
-              <option value="">-- Pilih --</option>
-              <option>Oli</option><option>Spare Part</option><option>Aksesoris</option>
-              <option>Ban</option><option>Aki</option><option>Lainnya</option>
-            </select>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Harga Modal (HPP)</label>
-            <input type="text" id="hargaModalProduk" placeholder="0" oninput="rpPreview(this,'prevModal')">
-            <div class="rp-preview" id="prevModal"></div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Harga Jual</label>
-            <input type="text" id="hargaProduk" placeholder="0" oninput="rpPreview(this,'prevJual')">
-            <div class="rp-preview" id="prevJual"></div>
-          </div>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label class="form-label">Stok Awal</label>
-            <input type="number" id="stokProduk" placeholder="0" min="0">
-          </div>
-          <div class="form-group">
-            <label class="form-label">Min. Stok Alert</label>
-            <input type="number" id="stokMinProduk" placeholder="3" min="0" value="3">
-          </div>
-        </div>
-        <button class="btn btn-primary btn-full" onclick="tambahProduk()">+ Tambah Produk</button>
-      </div>
-
-      <!-- Tab Daftar -->
-      <div class="tab-panel card-body" id="tab-daftar">
-        <div class="search-row">
-          <input type="text" id="searchProduk" placeholder="🔍 Cari produk..." oninput="renderProduk()">
-          <select id="filterKategori" onchange="renderProduk()">
-            <option value="">Semua</option>
-            <option>Oli</option><option>Spare Part</option><option>Aksesoris</option>
-            <option>Ban</option><option>Aki</option><option>Lainnya</option>
-          </select>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Produk</th><th>Harga Jual</th><th>Stok</th><th>Aksi</th></tr>
-            </thead>
-            <tbody id="produkList"></tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <!-- LAPORAN CARD -->
-    <div class="card">
-      <div class="tabs">
-        <button class="tab-btn active" onclick="switchTab('tab-laporan',this)">📊 Laporan Harian</button>
-        <button class="tab-btn" onclick="switchTab('tab-riwayat',this)">🧾 Riwayat Transaksi</button>
-      </div>
-
-      <!-- Tab Laporan -->
-      <div class="tab-panel active card-body" id="tab-laporan">
-        <!-- Filter Laporan -->
-        <div class="filter-row" style="margin-bottom:12px">
-          <div style="display:flex;align-items:center;gap:6px;flex:1">
-            <label class="form-label" style="margin:0;white-space:nowrap">Dari:</label>
-            <input type="date" id="filterLaporanDari" onchange="renderLaporan()" style="flex:1">
-          </div>
-          <div style="display:flex;align-items:center;gap:6px;flex:1">
-            <label class="form-label" style="margin:0;white-space:nowrap">Sampai:</label>
-            <input type="date" id="filterLaporanSampai" onchange="renderLaporan()" style="flex:1">
-          </div>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('filterLaporanDari').value='';document.getElementById('filterLaporanSampai').value='';renderLaporan()">Reset</button>
-        </div>
-
-        <div class="export-grid" style="margin-bottom:12px">
-          <button class="btn btn-ghost btn-sm" onclick="exportLaporanCsv()">📊 Export CSV</button>
-          <button class="btn btn-ghost btn-sm" onclick="exportLaporanTxt()">📄 Export TXT</button>
-          <button class="btn btn-ghost btn-sm" onclick="exportExcel()" style="color:var(--green);border-color:rgba(34,197,94,0.3)">📗 Export Excel</button>
-          <button class="btn btn-ghost btn-sm" onclick="backupData()">💾 Backup JSON</button>
-          <button class="btn btn-ghost btn-sm" onclick="document.getElementById('importFile').click()">📂 Restore</button>
-          <button class="btn btn-ghost btn-sm" style="color:var(--green);border-color:rgba(34,197,94,0.3)" onclick="kirimLaporanKeSheets()">📤 Kirim ke Sheets</button>
-        </div>
-        <input type="file" id="importFile" accept=".json" style="display:none" onchange="restoreBackup(event)">
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Tanggal</th><th>Omzet</th><th>Laba</th><th>Trx</th><th>Terlaris</th></tr>
-            </thead>
-            <tbody id="laporanList"></tbody>
-          </table>
-        </div>
-        <div style="margin-top:10px">
-          <button class="btn btn-danger btn-sm" onclick="resetLaporan()">🗑 Reset Laporan</button>
-        </div>
-      </div>
-
-      <!-- Tab Riwayat -->
-      <div class="tab-panel card-body" id="tab-riwayat">
-        <!-- Filter Riwayat -->
-        <div class="filter-row" style="margin-bottom:12px">
-          <input type="text" id="filterRiwayatCari" placeholder="🔍 Cari no. transaksi / produk..." oninput="renderRiwayat()" style="flex:2">
-          <select id="filterRiwayatMetode" onchange="renderRiwayat()" style="flex:1">
-            <option value="">Semua Metode</option>
-            <option value="Tunai">Tunai</option>
-            <option value="Transfer">Transfer</option>
-            <option value="QRIS">QRIS</option>
-          </select>
-        </div>
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Waktu</th><th>Total</th><th>Metode</th><th>Detail</th><th>Aksi</th></tr>
-            </thead>
-            <tbody id="riwayatList"></tbody>
-          </table>
-        </div>
-        <div style="margin-top:10px">
-          <button class="btn btn-danger btn-sm" onclick="resetRiwayat()">🗑 Reset Riwayat</button>
-        </div>
-      </div>
-    </div>
-
-  </div>
-
-  <!-- ── RIGHT COL ── -->
-  <div class="right-col">
-    <div class="card">
-      <div class="card-header">
-        <h2>🛒 Keranjang Belanja</h2>
-        <button class="btn btn-danger btn-xs" onclick="kosongkanCart()">Kosongkan</button>
-      </div>
-      <div class="card-body">
-        <div class="tbl-wrap">
-          <table>
-            <thead>
-              <tr><th>Produk</th><th>Harga</th><th>Qty</th><th>Sub</th><th></th></tr>
-            </thead>
-            <tbody id="cartList"></tbody>
-          </table>
-        </div>
-        <div id="cartEmpty" class="empty-state">
-          <div class="icon">🛒</div>
-          Keranjang kosong.<br>Klik <b>+</b> pada produk untuk menambah.
-        </div>
-
-        <!-- TOTAL BOX -->
-        <div class="total-box" id="totalBox">
-          <div class="total-row"><span>Subtotal</span><span id="totalSubtotal">Rp 0</span></div>
-          <div class="total-row diskon" id="diskonRow" style="display:none"><span>Diskon</span><span id="diskonAmt">- Rp 0</span></div>
-          <hr class="total-sep">
-          <div class="total-row main"><span>TOTAL</span><span id="totalAkhirDisplay">Rp 0</span></div>
-        </div>
-
-        <!-- DISKON -->
-        <div class="diskon-row">
-          <div class="form-group" style="flex:1;margin:0">
-            <label class="form-label">Diskon</label>
-            <input type="text" id="diskonNilai" placeholder="0" oninput="hitungDiskon()">
-          </div>
-          <select id="diskonTipe" onchange="hitungDiskon()" style="width:72px;align-self:flex-end;margin-bottom:0">
-            <option value="nominal">Rp</option>
-            <option value="persen">%</option>
-          </select>
-        </div>
-
-        <!-- METODE & BAYAR -->
-        <div class="form-group">
-          <label class="form-label">Metode Pembayaran</label>
-          <select id="metodeBayar">
-            <option value="Tunai">💵 Tunai</option>
-            <option value="Transfer">🏦 Transfer Bank</option>
-            <option value="QRIS">📱 QRIS</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Jumlah Bayar (tunai)</label>
-          <input type="text" id="bayar" placeholder="0" oninput="rpPreview(this,'prevBayar')">
-          <div class="rp-preview" id="prevBayar"></div>
-        </div>
-        <div class="form-group">
-          <label class="form-label">Nama Kasir</label>
-          <input type="text" id="namaKasir" placeholder="Admin" value="Admin">
-        </div>
-
-        <button class="btn btn-success btn-full" style="margin-bottom:8px" onclick="checkout()">✔ Proses Checkout</button>
-        <button class="btn btn-ghost btn-full" onclick="cetakStruklangsung()" id="btnCetak" style="display:none">🖨 Cetak Nota</button>
-
-        <div id="syncStatus" class="sync-status"></div>
-        <button class="btn btn-full" id="btnKirimSheets" onclick="kirimKeSheets()" style="display:none;margin-top:8px;background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:#22c55e">📤 Kirim ke Google Sheets</button>
-
-        <!-- STRUK (hidden, for print) -->
-        <div class="receipt" id="receipt"></div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-<!-- PRINT AREA -->
-<div id="printArea"></div>
-
-<!-- ══ MODAL PENGATURAN ══ -->
-<div class="modal-overlay" id="modalPengaturan">
-  <div class="modal">
-    <h2>⚙️ Pengaturan Toko</h2>
-    <div class="form-group"><label class="form-label">Nama Toko</label><input type="text" id="setNamaToko"></div>
-    <div class="form-group"><label class="form-label">Alamat</label><input type="text" id="setAlamat"></div>
-    <div class="form-group"><label class="form-label">Nomor Telepon</label><input type="text" id="setTelepon"></div>
-    <div class="form-group"><label class="form-label">Footer Nota 1</label><input type="text" id="setFooter1"></div>
-    <div class="form-group"><label class="form-label">Footer Nota 2</label><input type="text" id="setFooter2"></div>
-    <div class="modal-footer">
-      <button class="btn btn-success" onclick="simpanPengaturan()">💾 Simpan</button>
-      <button class="btn btn-ghost" onclick="tutupModal('modalPengaturan')">Batal</button>
-    </div>
-  </div>
-</div>
-
-<!-- ══ MODAL EDIT PRODUK ══ -->
-<div class="modal-overlay" id="editProdukModal">
-  <div class="modal">
-    <h2>✏️ Edit Produk</h2>
-    <input type="hidden" id="editIndex">
-    <div class="form-group"><label class="form-label">Nama Produk</label><input type="text" id="editNama"></div>
-    <div class="form-group"><label class="form-label">Kategori</label>
-      <select id="editKategori">
+    <div class="modal-row">
+      <div class="modal-label">Kategori *</div>
+      <select class="modal-select" id="prod-cat">
         <option value="">-- Pilih --</option>
         <option>Oli</option><option>Spare Part</option><option>Aksesoris</option>
         <option>Ban</option><option>Aki</option><option>Lainnya</option>
       </select>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Harga Modal</label><input type="text" id="editHargaModal" oninput="rpPreview(this,'editPrevModal')"><div class="rp-preview" id="editPrevModal"></div></div>
-      <div class="form-group"><label class="form-label">Harga Jual</label><input type="text" id="editHarga" oninput="rpPreview(this,'editPrevJual')"><div class="rp-preview" id="editPrevJual"></div></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="modal-row">
+        <div class="modal-label">Harga Modal (HPP)</div>
+        <input class="modal-input" id="prod-hpp" type="number" placeholder="0" min="0">
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Harga Jual *</div>
+        <input class="modal-input" id="prod-harga" type="number" placeholder="0" min="0">
+      </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label class="form-label">Stok</label><input type="number" id="editStok" min="0"></div>
-      <div class="form-group"><label class="form-label">Min. Stok Alert</label><input type="number" id="editStokMin" min="0"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+      <div class="modal-row">
+        <div class="modal-label">Stok</div>
+        <input class="modal-input" id="prod-stok" type="number" placeholder="0" min="0">
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Min. Stok Alert</div>
+        <input class="modal-input" id="prod-minstok" type="number" placeholder="5" min="0">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Barcode / SKU (opsional)</div>
+      <input class="modal-input" id="prod-sku" placeholder="Contoh: OLI-FST-1L">
     </div>
     <div class="modal-footer">
-      <button class="btn btn-success" onclick="simpanEditProduk()">💾 Simpan</button>
-      <button class="btn btn-ghost" onclick="tutupModal('editProdukModal')">Batal</button>
+      <button class="btn-secondary" onclick="closeModal('modal-tambah-produk')">Batal</button>
+      <button class="btn-primary" onclick="simpanProduk()">💾 Simpan</button>
+    </div>
+    <div id="edit-delete-row" style="margin-top:8px;display:none">
+      <button class="btn-danger" style="width:100%" onclick="hapusProduk()">🗑 Hapus Produk</button>
     </div>
   </div>
 </div>
 
-<!-- ══ MODAL GOOGLE SHEETS ══ -->
-<div class="modal-overlay" id="modalSheets">
-  <div class="modal">
-    <h2>🔗 Hubungkan Google Sheets</h2>
-    <p style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.6">Masukkan URL Google Apps Script Web App untuk sinkronisasi transaksi & laporan ke Google Sheets.</p>
-    <div class="form-group"><label class="form-label">Apps Script URL</label><input type="text" id="sheetsUrl" placeholder="https://script.google.com/macros/s/..."></div>
-    <div style="background:var(--bg);border-radius:8px;padding:12px;font-size:11px;color:var(--text2);margin-bottom:12px;line-height:1.8">
-      <strong style="color:var(--text)">📌 Cara mendapatkan URL:</strong><br>
-      1. Buka <strong>script.google.com</strong><br>
-      2. Buat project → paste kode Apps Script<br>
+<!-- Modal: Ganti PIN -->
+<div class="modal-overlay" id="modal-pin">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 Ganti PIN</div>
+    <div class="modal-row">
+      <div class="modal-label">PIN Lama</div>
+      <input class="modal-input" id="pin-lama" type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">PIN Baru (4 digit)</div>
+      <input class="modal-input" id="pin-baru" type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Konfirmasi PIN Baru</div>
+      <input class="modal-input" id="pin-konfirm" type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-pin')">Batal</button>
+      <button class="btn-primary" onclick="gantiPIN()">✔ Ganti PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nota -->
+<div class="modal-overlay" id="modal-nota">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Struk Transaksi</div>
+    <div class="nota-area" id="nota-content"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary" style="flex:1" onclick="window.print()">🖨 Print</button>
+      <button class="btn-secondary" style="flex:1" onclick="shareNota()">📤 Bagikan</button>
+      <button class="btn-secondary" onclick="closeModal('modal-nota')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Sheets Setup -->
+<div class="modal-overlay" id="modal-sheets">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔗 Setup Google Sheets</div>
+    <div style="font-size:13px;color:var(--text2);line-height:1.8;background:var(--bg3);padding:14px;border-radius:var(--radius-sm);margin-bottom:14px">
+      <strong style="color:var(--text)">Cara mendapatkan URL Apps Script:</strong><br>
+      1. Buka <strong style="color:var(--accent)">script.google.com</strong><br>
+      2. Buat project baru → paste kode Apps Script<br>
       3. Deploy → New Deployment → Web App<br>
       4. Set akses: <em>"Anyone"</em> → Deploy<br>
-      5. Copy URL dan paste di sini
+      5. Copy URL dan paste di Pengaturan
     </div>
-    <div id="sheetsTestStatus" class="sync-status"></div>
-    <div class="modal-footer">
-      <button class="btn btn-success" onclick="simpanSheetsUrl()">💾 Simpan</button>
-      <button class="btn btn-ghost" onclick="tesKoneksi()">🔌 Tes</button>
-      <button class="btn btn-ghost" onclick="tutupModal('modalSheets')">Batal</button>
-    </div>
+    <div style="font-size:12px;color:var(--text3);margin-bottom:6px">Data yang dikirim ke Sheets:</div>
+    <ul style="font-size:12px;color:var(--text2);padding-left:16px;line-height:2">
+      <li>Tanggal & waktu transaksi</li>
+      <li>Detail produk terjual</li>
+      <li>Total, diskon, metode bayar</li>
+      <li>Nama kasir</li>
+    </ul>
+    <button class="btn-primary" style="width:100%;margin-top:14px" onclick="closeModal('modal-sheets')">Mengerti</button>
   </div>
 </div>
 
-</div><!-- end #appContent -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ========== STATE ==========
+let deferredPrompt = null;
+let currentPin = '';
+let pinAttempts = 0;
+let lockUntil = 0;
+let cart = [];
+let produkFilter = 'Semua';
+let diskonMode = 'rp';
+let paymentMethod = 'tunai';
+let lastNota = '';
+let chartInstance = null;
 
-<!-- ══ SCRIPTS ══ -->
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
-<script src="js/app.js"></script>
+// ========== STORAGE ==========
+function getData(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) ?? def; }
+  catch { return def; }
+}
+function setData(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
 
-<!-- Firebase Cloud Sync -->
-<script type="module" src="js/firebase.js"></script>
+// ========== INIT ==========
+window.addEventListener('load', () => {
+  // Load settings to pin screen
+  const s = getData('settings', {});
+  if (s.nama) document.getElementById('pin-store-name').textContent = s.nama;
+  if (s.alamat) document.getElementById('pin-store-addr').textContent = s.alamat;
 
+  // PWA install
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault(); deferredPrompt = e;
+    const b = document.getElementById('install-banner');
+    b.style.display = 'flex';
+  });
+
+  // Set today's date on laporan
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now() - 7*24*3600*1000).toISOString().split('T')[0];
+  document.getElementById('date-dari').value = weekAgo;
+  document.getElementById('date-sampai').value = today;
+});
+
+function installPWA() {
+  if (deferredPrompt) { deferredPrompt.prompt(); deferredPrompt = null; }
+  document.getElementById('install-banner').style.display = 'none';
+}
+
+// ========== PIN ==========
+function pinInput(d) {
+  if (currentPin.length >= 4) return;
+  if (Date.now() < lockUntil) {
+    showStatus(`Terkunci ${Math.ceil((lockUntil-Date.now())/1000)}d lagi`, 'error');
+    return;
+  }
+  currentPin += d;
+  updatePinDots();
+  if (currentPin.length === 4) setTimeout(checkPin, 200);
+}
+
+function pinDel() {
+  currentPin = currentPin.slice(0, -1);
+  updatePinDots();
+}
+
+function updatePinDots() {
+  for (let i = 0; i < 4; i++) {
+    document.getElementById('d'+i).classList.toggle('filled', i < currentPin.length);
+  }
+}
+
+function showStatus(msg, type='') {
+  const el = document.getElementById('pinStatus');
+  el.textContent = msg;
+  el.className = 'pin-status ' + type;
+}
+
+function checkPin() {
+  const saved = getData('pin', '1234');
+  if (currentPin === saved) {
+    showStatus('✓ Berhasil', 'success');
+    pinAttempts = 0;
+    setTimeout(() => {
+      document.getElementById('pin-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+      initApp();
+    }, 300);
+  } else {
+    pinAttempts++;
+    if (pinAttempts >= 5) {
+      lockUntil = Date.now() + 30000;
+      showStatus('Terkunci 30 detik (5x salah)', 'error');
+    } else {
+      showStatus(`PIN salah (${pinAttempts}/5)`, 'error');
+    }
+    currentPin = '';
+    updatePinDots();
+    setTimeout(() => showStatus('Masukkan PIN'), 1500);
+  }
+}
+
+function lockApp() {
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('pin-screen').style.display = 'flex';
+  currentPin = '';
+  updatePinDots();
+  showStatus('Masukkan PIN');
+}
+
+function gantiPIN() {
+  const lama = document.getElementById('pin-lama').value;
+  const baru = document.getElementById('pin-baru').value;
+  const konfirm = document.getElementById('pin-konfirm').value;
+  const saved = getData('pin', '1234');
+
+  if (lama !== saved) { toast('PIN lama salah', 'error'); return; }
+  if (baru.length !== 4 || !/^\d{4}$/.test(baru)) { toast('PIN baru harus 4 digit angka', 'error'); return; }
+  if (baru !== konfirm) { toast('Konfirmasi PIN tidak cocok', 'error'); return; }
+
+  setData('pin', baru);
+  closeModal('modal-pin');
+  toast('PIN berhasil diganti ✓', 'success');
+  document.getElementById('pin-lama').value = '';
+  document.getElementById('pin-baru').value = '';
+  document.getElementById('pin-konfirm').value = '';
+}
+
+function resetPinPrompt() {
+  const kode = prompt('Masukkan kode rahasia untuk reset PIN:');
+  const s = getData('settings', {});
+  const rahasia = s.kode_rahasia || 'MOTOR88';
+  if (kode === rahasia) {
+    setData('pin', '1234');
+    toast('PIN direset ke 1234', 'success');
+  } else {
+    alert('Kode rahasia salah');
+  }
+}
+
+// ========== APP INIT ==========
+function initApp() {
+  loadSettings();
+  renderDashboard();
+  renderProduk();
+  renderLaporan();
+  renderRiwayat();
+}
+
+// ========== NAVIGATION ==========
+function navTo(page, btn) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  btn.classList.add('active');
+
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'laporan') { renderLaporan(); renderRiwayat(); }
+}
+
+// ========== SETTINGS ==========
+function loadSettings() {
+  const s = getData('settings', {});
+  document.getElementById('set-nama').value = s.nama || '';
+  document.getElementById('set-alamat').value = s.alamat || '';
+  document.getElementById('set-telp').value = s.telp || '';
+  document.getElementById('set-footer1').value = s.footer1 || 'Terima kasih telah berbelanja!';
+  document.getElementById('set-footer2').value = s.footer2 || 'Barang yang sudah dibeli tidak dapat dikembalikan';
+  document.getElementById('set-sheets-url').value = s.sheets_url || '';
+  document.getElementById('hdr-name').textContent = s.nama || 'Motor Kasir Pro';
+  document.getElementById('hdr-sub').textContent = (s.alamat || '') + ' — v4.0';
+  document.getElementById('pin-store-name').textContent = s.nama || 'Motor Kasir Pro';
+  if (s.alamat) document.getElementById('pin-store-addr').textContent = s.alamat;
+
+  // Toggles
+  const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true });
+  setToggleState('toggle-auto-sheets', prefs.auto_sheets);
+  setToggleState('toggle-show-laba', prefs.show_laba);
+  setToggleState('toggle-stok-alert', prefs.stok_alert);
+
+  // Sheets status
+  updateSheetsStatus(!!s.sheets_url);
+}
+
+function saveSettings() {
+  const s = {
+    nama: document.getElementById('set-nama').value,
+    alamat: document.getElementById('set-alamat').value,
+    telp: document.getElementById('set-telp').value,
+    footer1: document.getElementById('set-footer1').value,
+    footer2: document.getElementById('set-footer2').value,
+    sheets_url: document.getElementById('set-sheets-url').value,
+    kode_rahasia: getData('settings', {}).kode_rahasia || 'MOTOR88',
+  };
+  setData('settings', s);
+  document.getElementById('hdr-name').textContent = s.nama || 'Motor Kasir Pro';
+  document.getElementById('hdr-sub').textContent = (s.alamat || '') + ' — v4.0';
+  updateSheetsStatus(!!s.sheets_url);
+}
+
+function toggleSetting(key, btn) {
+  const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true });
+  prefs[key] = !prefs[key];
+  setData('prefs', prefs);
+  setToggleState(btn.id, prefs[key]);
+}
+
+function setToggleState(id, on) {
+  document.getElementById(id).classList.toggle('on', on);
+}
+
+function updateSheetsStatus(connected) {
+  document.getElementById('sheets-dot').classList.toggle('connected', connected);
+  document.getElementById('sheets-status-text').textContent = connected ? 'Terhubung' : 'Belum terhubung';
+}
+
+// ========== PRODUK ==========
+function getCatIcon(cat) {
+  const icons = { 'Oli': '🛢️', 'Spare Part': '⚙️', 'Aksesoris': '🔩', 'Ban': '🔄', 'Aki': '🔋', 'Lainnya': '📦' };
+  return icons[cat] || '📦';
+}
+
+function renderProduk() {
+  const produk = getData('produk', []);
+  const q = document.getElementById('search-produk').value.toLowerCase();
+  const filtered = produk.filter(p =>
+    (produkFilter === 'Semua' || p.kategori === produkFilter) &&
+    (!q || p.nama.toLowerCase().includes(q) || (p.sku||'').toLowerCase().includes(q))
+  );
+
+  const list = document.getElementById('produk-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>Belum ada produk.<br>Tap ＋ untuk tambah produk.</div>';
+    return;
+  }
+
+  list.innerHTML = filtered.map(p => {
+    const isLow = p.stok <= (p.minstok || 5);
+    const inCart = cart.filter(c => c.id === p.id).reduce((s,c) => s + c.qty, 0);
+    return `<div class="produk-card">
+      <div class="produk-icon">${getCatIcon(p.kategori)}</div>
+      <div class="produk-info">
+        <div class="produk-name">${p.nama}</div>
+        <div class="produk-meta">
+          <span class="produk-price">${fmtRp(p.harga)}</span>
+          <span class="produk-cat">${p.kategori}</span>
+          <span class="produk-stok ${isLow?'low':''}">Stok: ${p.stok}${p.sku?' · '+p.sku:''}</span>
+        </div>
+      </div>
+      <div class="produk-actions">
+        <button class="btn-edit-prod" onclick="editProduk(${p.id})">✏️</button>
+        <button class="btn-add-cart ${p.stok<=0?'disabled':''}" onclick="${p.stok>0?`addToCart(${p.id})`:''}">＋</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function setFilter(el) {
+  document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  produkFilter = el.dataset.cat;
+  renderProduk();
+}
+
+function openModal(id) {
+  document.getElementById(id).classList.add('show');
+  if (id === 'modal-tambah-produk') {
+    document.getElementById('modal-produk-title').textContent = 'Tambah Produk';
+    document.getElementById('edit-produk-id').value = '';
+    document.getElementById('prod-nama').value = '';
+    document.getElementById('prod-cat').value = '';
+    document.getElementById('prod-hpp').value = '';
+    document.getElementById('prod-harga').value = '';
+    document.getElementById('prod-stok').value = '';
+    document.getElementById('prod-minstok').value = '';
+    document.getElementById('prod-sku').value = '';
+    document.getElementById('edit-delete-row').style.display = 'none';
+  }
+}
+
+function closeModal(id) {
+  document.getElementById(id).classList.remove('show');
+}
+
+function editProduk(id) {
+  const produk = getData('produk', []);
+  const p = produk.find(x => x.id === id);
+  if (!p) return;
+  document.getElementById('modal-produk-title').textContent = 'Edit Produk';
+  document.getElementById('edit-produk-id').value = id;
+  document.getElementById('prod-nama').value = p.nama;
+  document.getElementById('prod-cat').value = p.kategori;
+  document.getElementById('prod-hpp').value = p.hpp || '';
+  document.getElementById('prod-harga').value = p.harga;
+  document.getElementById('prod-stok').value = p.stok;
+  document.getElementById('prod-minstok').value = p.minstok || '';
+  document.getElementById('prod-sku').value = p.sku || '';
+  document.getElementById('edit-delete-row').style.display = 'block';
+  openModal('modal-tambah-produk');
+}
+
+function simpanProduk() {
+  const nama = document.getElementById('prod-nama').value.trim();
+  const kategori = document.getElementById('prod-cat').value;
+  const hpp = parseFloat(document.getElementById('prod-hpp').value) || 0;
+  const harga = parseFloat(document.getElementById('prod-harga').value) || 0;
+  const stok = parseInt(document.getElementById('prod-stok').value) || 0;
+  const minstok = parseInt(document.getElementById('prod-minstok').value) || 5;
+  const sku = document.getElementById('prod-sku').value.trim();
+  const editId = parseInt(document.getElementById('edit-produk-id').value) || 0;
+
+  if (!nama) { toast('Nama produk wajib diisi', 'error'); return; }
+  if (!kategori) { toast('Pilih kategori', 'error'); return; }
+  if (harga <= 0) { toast('Harga jual harus diisi', 'error'); return; }
+
+  let produk = getData('produk', []);
+  if (editId) {
+    produk = produk.map(p => p.id === editId ? {...p, nama, kategori, hpp, harga, stok, minstok, sku} : p);
+    toast('Produk diperbarui ✓', 'success');
+  } else {
+    const id = Date.now();
+    produk.push({ id, nama, kategori, hpp, harga, stok, minstok, sku, terjual: 0 });
+    toast('Produk ditambahkan ✓', 'success');
+  }
+  setData('produk', produk);
+  closeModal('modal-tambah-produk');
+  renderProduk();
+  updateKritisCount();
+}
+
+function hapusProduk() {
+  const id = parseInt(document.getElementById('edit-produk-id').value);
+  if (!confirm('Yakin hapus produk ini?')) return;
+  let produk = getData('produk', []).filter(p => p.id !== id);
+  setData('produk', produk);
+  closeModal('modal-tambah-produk');
+  renderProduk();
+  toast('Produk dihapus', 'error');
+}
+
+// ========== CART ==========
+function addToCart(id) {
+  const produk = getData('produk', []);
+  const p = produk.find(x => x.id === id);
+  if (!p || p.stok <= 0) { toast('Stok habis', 'error'); return; }
+
+  const existing = cart.find(c => c.id === id);
+  if (existing) {
+    if (existing.qty >= p.stok) { toast('Stok tidak cukup', 'error'); return; }
+    existing.qty++;
+  } else {
+    cart.push({ id, nama: p.nama, harga: p.harga, hpp: p.hpp||0, qty: 1, maxStok: p.stok });
+  }
+  updateCartBadge();
+  renderCart();
+  hitungTotal();
+  toast(`${p.nama} ditambahkan ✓`);
+}
+
+function updateCartBadge() {
+  const total = cart.reduce((s,c) => s + c.qty, 0);
+  const badge = document.getElementById('cart-badge');
+  badge.style.display = total > 0 ? 'flex' : 'none';
+  badge.textContent = total;
+}
+
+function renderCart() {
+  const list = document.getElementById('cart-list');
+  const empty = document.getElementById('cart-empty');
+  if (cart.length === 0) {
+    list.style.display = 'none';
+    empty.style.display = 'block';
+    document.getElementById('btn-checkout').disabled = true;
+    return;
+  }
+  list.style.display = 'flex';
+  empty.style.display = 'none';
+  document.getElementById('btn-checkout').disabled = false;
+
+  list.innerHTML = cart.map((c, i) => `
+    <div class="cart-item">
+      <div style="flex:1">
+        <div class="cart-item-name">${c.nama}</div>
+        <div class="cart-item-price">${fmtRp(c.harga)} × ${c.qty} = <strong>${fmtRp(c.harga*c.qty)}</strong></div>
+      </div>
+      <div class="cart-qty-ctrl">
+        <button class="qty-btn" onclick="changeQty(${i},-1)">−</button>
+        <span class="qty-val">${c.qty}</span>
+        <button class="qty-btn" onclick="changeQty(${i},1)">+</button>
+      </div>
+      <div class="cart-sub">${fmtRp(c.harga*c.qty)}</div>
+      <button class="btn-rm" onclick="removeCart(${i})">✕</button>
+    </div>`).join('');
+}
+
+function changeQty(i, d) {
+  cart[i].qty = Math.max(1, Math.min(cart[i].maxStok, cart[i].qty + d));
+  renderCart();
+  hitungTotal();
+}
+
+function removeCart(i) {
+  cart.splice(i, 1);
+  updateCartBadge();
+  renderCart();
+  hitungTotal();
+}
+
+function hitungTotal() {
+  const subtotal = cart.reduce((s,c) => s + c.harga*c.qty, 0);
+  const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
+  const diskon = diskonMode === 'pct' ? Math.round(subtotal * dv / 100) : dv;
+  const total = Math.max(0, subtotal - diskon);
+
+  document.getElementById('co-subtotal').textContent = fmtRp(subtotal);
+  document.getElementById('co-diskon').textContent = '- ' + fmtRp(diskon);
+  document.getElementById('co-total').textContent = fmtRp(total);
+  hitungKembalian();
+}
+
+function setDiskonMode(mode) {
+  diskonMode = mode;
+  document.getElementById('diskon-rp').classList.toggle('active', mode==='rp');
+  document.getElementById('diskon-pct').classList.toggle('active', mode==='pct');
+  hitungTotal();
+}
+
+function setPayment(btn, method) {
+  paymentMethod = method;
+  document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tunai-section').style.display = method==='tunai' ? 'block' : 'none';
+}
+
+function hitungKembalian() {
+  const total = parseInt(document.getElementById('co-total').textContent.replace(/\D/g,'')) || 0;
+  const bayar = parseFloat(document.getElementById('uang-bayar').value) || 0;
+  const kembalian = bayar - total;
+  const row = document.getElementById('kembalian-row');
+  if (bayar > 0) {
+    row.style.display = 'flex';
+    document.getElementById('kembalian-val').textContent = fmtRp(Math.max(0, kembalian));
+    document.getElementById('kembalian-val').style.color = kembalian < 0 ? 'var(--red)' : 'var(--green)';
+  } else {
+    row.style.display = 'none';
+  }
+}
+
+function checkout() {
+  if (cart.length === 0) return;
+  const subtotal = cart.reduce((s,c) => s + c.harga*c.qty, 0);
+  const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
+  const diskon = diskonMode === 'pct' ? Math.round(subtotal * dv / 100) : dv;
+  const total = Math.max(0, subtotal - diskon);
+  const kasir = document.getElementById('kasir-name').value || 'Kasir';
+  const bayar = parseFloat(document.getElementById('uang-bayar').value) || total;
+
+  if (paymentMethod === 'tunai' && bayar < total) {
+    toast('Uang bayar kurang!', 'error'); return;
+  }
+
+  // Update stok
+  let produk = getData('produk', []);
+  cart.forEach(c => {
+    const idx = produk.findIndex(p => p.id === c.id);
+    if (idx >= 0) {
+      produk[idx].stok = Math.max(0, produk[idx].stok - c.qty);
+      produk[idx].terjual = (produk[idx].terjual || 0) + c.qty;
+    }
+  });
+  setData('produk', produk);
+
+  // Save transaksi
+  const now = new Date();
+  const trx = {
+    id: Date.now(),
+    waktu: now.toLocaleString('id-ID'),
+    items: cart.map(c => ({...c})),
+    subtotal, diskon, total,
+    metode: paymentMethod,
+    bayar, kembalian: Math.max(0, bayar - total),
+    kasir,
+    laba: cart.reduce((s,c) => s + (c.harga-c.hpp)*c.qty, 0) - diskon,
+  };
+
+  // Save riwayat
+  const riwayat = getData('riwayat', []);
+  riwayat.unshift(trx);
+  setData('riwayat', riwayat);
+
+  // Update laporan harian
+  const tgl = now.toLocaleDateString('id-ID');
+  const laporan = getData('laporan', {});
+  if (!laporan[tgl]) laporan[tgl] = { omzet: 0, laba: 0, trx: 0, terlaris: {} };
+  laporan[tgl].omzet += total;
+  laporan[tgl].laba += trx.laba;
+  laporan[tgl].trx++;
+  cart.forEach(c => {
+    laporan[tgl].terlaris[c.nama] = (laporan[tgl].terlaris[c.nama] || 0) + c.qty;
+  });
+  setData('laporan', laporan);
+
+  // Generate nota
+  lastNota = generateNota(trx);
+  document.getElementById('nota-content').textContent = lastNota;
+
+  // Auto kirim sheets
+  const prefs = getData('prefs', {});
+  if (prefs.auto_sheets) kirimSheets(trx);
+
+  // Reset cart
+  cart = [];
+  updateCartBadge();
+  renderCart();
+  hitungTotal();
+  document.getElementById('diskon-val').value = '';
+  document.getElementById('uang-bayar').value = '';
+  document.getElementById('kasir-name').value = '';
+
+  toast('✓ Transaksi berhasil!', 'success');
+  openModal('modal-nota');
+  renderProduk();
+  updateKritisCount();
+}
+
+function generateNota(trx) {
+  const s = getData('settings', {});
+  const w = 32;
+  const line = '─'.repeat(w);
+  const center = (str) => {
+    const pad = Math.max(0, Math.floor((w - str.length) / 2));
+    return ' '.repeat(pad) + str;
+  };
+  let nota = '';
+  nota += center(s.nama || 'Motor Kasir Pro') + '\n';
+  if (s.alamat) nota += center(s.alamat) + '\n';
+  if (s.telp) nota += center('Telp: ' + s.telp) + '\n';
+  nota += line + '\n';
+  nota += `Waktu : ${trx.waktu}\n`;
+  nota += `Kasir : ${trx.kasir}\n`;
+  nota += `Metode: ${trx.metode.toUpperCase()}\n`;
+  nota += line + '\n';
+  trx.items.forEach(item => {
+    const sub = fmtRp(item.harga * item.qty);
+    nota += `${item.nama}\n  ${item.qty} × ${fmtRp(item.harga)} = ${sub}\n`;
+  });
+  nota += line + '\n';
+  nota += `Subtotal : ${fmtRp(trx.subtotal)}\n`;
+  if (trx.diskon > 0) nota += `Diskon   : - ${fmtRp(trx.diskon)}\n`;
+  nota += `TOTAL    : ${fmtRp(trx.total)}\n`;
+  if (trx.metode === 'tunai') {
+    nota += `Bayar    : ${fmtRp(trx.bayar)}\n`;
+    nota += `Kembali  : ${fmtRp(trx.kembalian)}\n`;
+  }
+  nota += line + '\n';
+  nota += center(s.footer1 || 'Terima kasih telah berbelanja!') + '\n';
+  if (s.footer2) nota += center(s.footer2) + '\n';
+  return nota;
+}
+
+async function shareNota() {
+  if (navigator.share) {
+    try {
+      await navigator.share({ title: 'Struk Transaksi', text: lastNota });
+    } catch(e) {}
+  } else {
+    navigator.clipboard.writeText(lastNota);
+    toast('Struk disalin ke clipboard ✓');
+  }
+}
+
+// ========== DASHBOARD ==========
+function renderDashboard() {
+  const laporan = getData('laporan', {});
+  const tgl = new Date().toLocaleDateString('id-ID');
+  const hari = laporan[tgl] || { omzet: 0, laba: 0, trx: 0 };
+
+  document.getElementById('stat-omzet').textContent = fmtRpShort(hari.omzet);
+  document.getElementById('stat-laba').textContent = fmtRpShort(hari.laba);
+  document.getElementById('stat-trx').textContent = hari.trx;
+  updateKritisCount();
+  renderChart();
+  renderTerlaris();
+}
+
+function updateKritisCount() {
+  const produk = getData('produk', []);
+  const kritis = produk.filter(p => p.stok <= (p.minstok || 5));
+  document.getElementById('stat-kritis').textContent = kritis.length;
+
+  const list = document.getElementById('kritis-list');
+  if (kritis.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Semua stok aman</div>';
+  } else {
+    list.innerHTML = kritis.map(p => `
+      <div class="kritis-item">
+        <div>
+          <div class="kritis-name">${p.nama}</div>
+          <div class="kritis-stok">${p.stok} unit tersisa</div>
+        </div>
+        <span class="badge-kritis">${p.stok <= 0 ? 'HABIS' : 'KRITIS'}</span>
+      </div>`).join('');
+  }
+}
+
+function renderChart() {
+  const laporan = getData('laporan', {});
+  const days = [];
+  const omzetData = [];
+  const labaData = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(Date.now() - i*24*3600*1000);
+    const label = d.toLocaleDateString('id-ID', {day:'numeric',month:'short'});
+    const tgl = d.toLocaleDateString('id-ID');
+    days.push(label);
+    omzetData.push(laporan[tgl]?.omzet || 0);
+    labaData.push(laporan[tgl]?.laba || 0);
+  }
+
+  const ctx = document.getElementById('chartOmzet').getContext('2d');
+  if (chartInstance) chartInstance.destroy();
+  chartInstance = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: days,
+      datasets: [
+        { label: 'Omzet', data: omzetData, backgroundColor: 'rgba(245,197,66,0.7)', borderRadius: 4 },
+        { label: 'Laba', data: labaData, backgroundColor: 'rgba(76,175,125,0.7)', borderRadius: 4 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { grid: { color: '#2e2e2e' }, ticks: { color: '#5a5550', font: { size: 10 } } },
+        y: { grid: { color: '#2e2e2e' }, ticks: { color: '#5a5550', font: { size: 10 }, callback: v => fmtRpShort(v) } }
+      }
+    }
+  });
+}
+
+function renderTerlaris() {
+  const laporan = getData('laporan', {});
+  const now = new Date();
+  const bulan = now.getMonth(); const tahun = now.getFullYear();
+  const totalTerjual = {};
+
+  Object.entries(laporan).forEach(([tgl, data]) => {
+    const d = new Date(tgl.split('/').reverse().join('-'));
+    if (d.getMonth()===bulan && d.getFullYear()===tahun) {
+      Object.entries(data.terlaris||{}).forEach(([nama,qty]) => {
+        totalTerjual[nama] = (totalTerjual[nama]||0) + qty;
+      });
+    }
+  });
+
+  const sorted = Object.entries(totalTerjual).sort((a,b) => b[1]-a[1]).slice(0,5);
+  const el = document.getElementById('terlaris-list');
+  if (sorted.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">📦</div>Belum ada data penjualan</div>';
+    return;
+  }
+  el.innerHTML = sorted.map(([nama,qty], i) => `
+    <div class="kritis-item" style="margin-bottom:8px">
+      <div>
+        <div class="kritis-name">${i+1}. ${nama}</div>
+      </div>
+      <span style="font-size:13px;font-weight:700;color:var(--accent)">${qty} unit</span>
+    </div>`).join('');
+}
+
+// ========== LAPORAN ==========
+function renderLaporan() {
+  const laporan = getData('laporan', {});
+  const dari = document.getElementById('date-dari').value;
+  const sampai = document.getElementById('date-sampai').value;
+
+  const entries = Object.entries(laporan)
+    .map(([tgl, data]) => {
+      const parts = tgl.split('/');
+      const iso = parts.length === 3 ? `${parts[2]}-${parts[1].padStart(2,'0')}-${parts[0].padStart(2,'0')}` : '';
+      return { tgl, iso, ...data };
+    })
+    .filter(e => {
+      if (dari && e.iso < dari) return false;
+      if (sampai && e.iso > sampai) return false;
+      return true;
+    })
+    .sort((a,b) => b.iso.localeCompare(a.iso));
+
+  const tbody = document.getElementById('laporan-tbody');
+  if (entries.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text3);padding:20px">Belum ada laporan</td></tr>';
+    return;
+  }
+  tbody.innerHTML = entries.map(e => {
+    const terlaris = Object.entries(e.terlaris||{}).sort((a,b)=>b[1]-a[1])[0];
+    return `<tr>
+      <td>${e.tgl}</td>
+      <td style="color:var(--accent)">${fmtRpShort(e.omzet)}</td>
+      <td style="color:var(--green)">${fmtRpShort(e.laba)}</td>
+      <td>${e.trx}</td>
+      <td style="color:var(--text2)">${terlaris ? terlaris[0] : '-'}</td>
+    </tr>`;
+  }).join('');
+}
+
+function resetDateFilter() {
+  const today = new Date().toISOString().split('T')[0];
+  const weekAgo = new Date(Date.now()-7*24*3600*1000).toISOString().split('T')[0];
+  document.getElementById('date-dari').value = weekAgo;
+  document.getElementById('date-sampai').value = today;
+  renderLaporan();
+}
+
+function renderRiwayat() {
+  const riwayat = getData('riwayat', []);
+  const filterPay = document.getElementById('filter-payment').value;
+  const filtered = filterPay ? riwayat.filter(r => r.metode === filterPay) : riwayat;
+  const el = document.getElementById('riwayat-list');
+
+  if (filtered.length === 0) {
+    el.innerHTML = '<div class="empty-state"><div class="empty-icon">🧾</div>Belum ada transaksi</div>';
+    return;
+  }
+  el.innerHTML = filtered.map(r => `
+    <div class="riwayat-item">
+      <div class="riwayat-header">
+        <div>
+          <div style="font-size:13px;font-weight:600">${r.kasir}</div>
+          <div class="riwayat-waktu">${r.waktu}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="riwayat-total">${fmtRp(r.total)}</div>
+          <span class="badge-payment ${r.metode}">${r.metode.toUpperCase()}</span>
+        </div>
+      </div>
+      <div class="riwayat-detail">
+        ${r.items.map(i => `${i.nama} ×${i.qty}`).join(' · ')}
+        ${r.diskon>0?`<br>Diskon: ${fmtRp(r.diskon)}`:''}
+      </div>
+    </div>`).join('');
+}
+
+// ========== EXPORT ==========
+function exportCSV() {
+  const laporan = getData('laporan', {});
+  let csv = 'Tanggal,Omzet,Laba,Transaksi,Terlaris\n';
+  Object.entries(laporan).forEach(([tgl, d]) => {
+    const terlaris = Object.entries(d.terlaris||{}).sort((a,b)=>b[1]-a[1])[0];
+    csv += `${tgl},${d.omzet},${d.laba},${d.trx},${terlaris?terlaris[0]:'-'}\n`;
+  });
+  downloadFile('laporan.csv', csv, 'text/csv');
+  toast('Export CSV ✓');
+}
+
+function exportTXT() {
+  const laporan = getData('laporan', {});
+  let txt = 'LAPORAN PENJUALAN\n' + '='.repeat(32) + '\n\n';
+  Object.entries(laporan).forEach(([tgl, d]) => {
+    txt += `${tgl}\nOmzet: ${fmtRp(d.omzet)} | Laba: ${fmtRp(d.laba)} | Trx: ${d.trx}\n\n`;
+  });
+  downloadFile('laporan.txt', txt, 'text/plain');
+  toast('Export TXT ✓');
+}
+
+function exportJSON() {
+  const data = {
+    produk: getData('produk', []),
+    laporan: getData('laporan', {}),
+    riwayat: getData('riwayat', []),
+    settings: getData('settings', {}),
+    backup_date: new Date().toISOString(),
+  };
+  downloadFile('backup-kasir.json', JSON.stringify(data, null, 2), 'application/json');
+  toast('Backup JSON ✓');
+}
+
+function restoreJSON(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (data.produk) setData('produk', data.produk);
+      if (data.laporan) setData('laporan', data.laporan);
+      if (data.riwayat) setData('riwayat', data.riwayat);
+      if (data.settings) setData('settings', data.settings);
+      toast('Data berhasil direstore ✓', 'success');
+      initApp();
+    } catch { toast('File tidak valid', 'error'); }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+function downloadFile(name, content, type) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type }));
+  a.download = name; a.click();
+}
+
+async function kirimSheets(trxData) {
+  const s = getData('settings', {});
+  if (!s.sheets_url) { toast('URL Sheets belum diset', 'error'); return; }
+  try {
+    const riwayat = getData('riwayat', []);
+    const data = trxData || riwayat[0];
+    if (!data) { toast('Tidak ada data transaksi', 'error'); return; }
+    await fetch(s.sheets_url, {
+      method: 'POST',
+      body: JSON.stringify({ action: 'addTransaction', data }),
+    });
+    toast('Terkirim ke Sheets ✓', 'success');
+  } catch { toast('Gagal kirim ke Sheets', 'error'); }
+}
+
+async function tesSheets() {
+  const url = document.getElementById('set-sheets-url').value;
+  if (!url) { toast('URL belum diisi', 'error'); return; }
+  try {
+    toast('Menghubungkan...');
+    await fetch(url, { method: 'POST', body: JSON.stringify({ action: 'ping' }) });
+    toast('Koneksi berhasil ✓', 'success');
+    updateSheetsStatus(true);
+  } catch { toast('Gagal terhubung', 'error'); }
+}
+
+function resetLaporan() {
+  if (!confirm('Reset semua laporan harian?')) return;
+  setData('laporan', {});
+  renderLaporan();
+  renderDashboard();
+  toast('Laporan direset');
+}
+
+function resetRiwayat() {
+  if (!confirm('Hapus semua riwayat transaksi?')) return;
+  setData('riwayat', []);
+  renderRiwayat();
+  toast('Riwayat dihapus');
+}
+
+function resetAllData() {
+  const konfirm = prompt('Ketik "HAPUS SEMUA" untuk konfirmasi:');
+  if (konfirm !== 'HAPUS SEMUA') { toast('Dibatalkan'); return; }
+  ['produk','laporan','riwayat'].forEach(k => localStorage.removeItem(k));
+  cart = [];
+  updateCartBadge();
+  renderCart();
+  initApp();
+  toast('Semua data dihapus', 'error');
+}
+
+// ========== UTILS ==========
+function fmtRp(n) {
+  return 'Rp ' + Math.round(n||0).toLocaleString('id-ID');
+}
+function fmtRpShort(n) {
+  n = Math.round(n||0);
+  if (n >= 1000000) return 'Rp ' + (n/1000000).toFixed(1) + 'jt';
+  if (n >= 1000) return 'Rp ' + (n/1000).toFixed(0) + 'rb';
+  return 'Rp ' + n;
+}
+
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
+// Close modal on overlay click
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+</script>
 </body>
 </html>

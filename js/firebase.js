@@ -10,7 +10,7 @@ import { getDatabase, ref, set, get, onValue, off } from "https://www.gstatic.co
 const firebaseConfig = {
   apiKey: "AIzaSyBWpYf60oElN_so1PJAyl0dz0Rn1Qc2QwY",
   authDomain: "dityamotor88-33cf5.firebaseapp.com",
-  databaseURL: "https://dityamotor88-33cf5-default-rtdb.asia-southeast1.firebaseapp.com",
+  databaseURL: "https://dityamotor88-33cf5-default-rtdb.asia-southeast1.firebasedatabase.app",
   projectId: "dityamotor88-33cf5",
   storageBucket: "dityamotor88-33cf5.firebasestorage.app",
   messagingSenderId: "1035608933800",

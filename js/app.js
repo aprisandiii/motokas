@@ -66,7 +66,8 @@ window.updateDashboard = function() { renderDashboard(); };
 
 // ===== INIT =====
 window.addEventListener('load', () => {
-  document.getElementById('auth-screen').style.display = 'flex';
+  // Sembunyikan semua screen dulu, biarkan onAuthStateChanged yang handle
+  document.getElementById('auth-screen').style.display = 'none';
   document.getElementById('pin-screen').style.display  = 'none';
 
   const s = getData('settings', {});

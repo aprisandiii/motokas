@@ -191,6 +191,10 @@ function initApp() {
   renderLaporan();
   renderRiwayat();
   if (typeof window.injectCloudButton === 'function') window.injectCloudButton();
+  // ✅ TAMBAHAN: load data Firebase setelah PIN berhasil
+  if (window.FB && window.FB.uid && typeof window.fbLoadAllData === 'function') {
+    window.fbLoadAllData().then(() => window.fbListenRealtime());
+  }
 }
 
 // ===== NAVIGATION =====

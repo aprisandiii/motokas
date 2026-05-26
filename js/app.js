@@ -938,3 +938,20 @@ async function doRegister() {
     errEl.textContent = result.error;
   }
 }
+function logoutAkun() {
+  if (!confirm('Yakin ingin logout dari akun?')) return;
+  // Logout dari Firebase
+  if (window.FB && typeof window.fbLogout === 'function') window.fbLogout();
+  // Sembunyikan app, tampilkan auth screen
+  document.getElementById('app').style.display       = 'none';
+  document.getElementById('pin-screen').style.display = 'none';
+  document.getElementById('auth-screen').style.display = 'flex';
+  // Reset form login
+  document.getElementById('login-email').value    = '';
+  document.getElementById('login-password').value = '';
+  document.getElementById('login-error').textContent = '';
+  // Reset cart
+  cart = [];
+  updateCartBadge();
+  toast('Berhasil logout ✓');
+}

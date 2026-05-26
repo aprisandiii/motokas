@@ -120,6 +120,16 @@ window.fbLogin = async function(email, password) {
   }
 };
 
+window.fbResetPassword = async function(email) {
+  try {
+    const { sendPasswordResetEmail } = await import("https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js");
+    await sendPasswordResetEmail(auth, email);
+    return { ok: true };
+  } catch(e) {
+    return { ok: false, error: fbErrMsg(e.code) };
+  }
+};
+
 window.fbLogout = async function() {
   Object.values(window.FB.listeners).forEach(r => off(r));
   window.FB.listeners = {};

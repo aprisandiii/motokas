@@ -210,9 +210,9 @@ function loadSettings() {
   document.getElementById('set-footer2').value = s.footer2 || 'Barang yang sudah dibeli tidak dapat dikembalikan';
   document.getElementById('set-sheets-url').value = s.sheets_url || '';
   document.getElementById('set-kode-rahasia').value = s.kode_rahasia || '';
-  document.getElementById('hdr-name').textContent = s.nama || 'dityaMotor 88';
+  document.getElementById('hdr-name').textContent = s.nama || 'Nama Toko';
   document.getElementById('hdr-sub').textContent = (s.alamat ? s.alamat + ' — ' : '') + 'v4.0';
-  document.getElementById('pin-store-name').textContent = s.nama || 'dityaMotor 88';
+  document.getElementById('pin-store-name').textContent = s.nama || 'Nama Toko';
   if (s.alamat) document.getElementById('pin-store-addr').textContent = s.alamat;
 
   const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true });
@@ -233,7 +233,7 @@ function saveSettings() {
     kode_rahasia: document.getElementById('set-kode-rahasia').value || 'MOTOR88',
   };
   setData('settings', s);
-  document.getElementById('hdr-name').textContent = s.nama || 'dityaMotor 88';
+  document.getElementById('hdr-name').textContent = s.nama || 'Nama Toko';
   document.getElementById('hdr-sub').textContent = (s.alamat ? s.alamat + ' — ' : '') + 'v4.0';
   updateSheetsStatus(!!s.sheets_url);
 }

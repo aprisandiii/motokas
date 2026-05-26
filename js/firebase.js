@@ -24,12 +24,11 @@ const rtdb = getDatabase(app);
 window.FB = { auth, rtdb, uid: null, isOnline: false, listeners: {} };
 
 /* ── INTERNAL FLAGS ── */
-let _isSaving       = false;  // sedang simpan ke Firebase
-let _isLoadingCloud = false;  // sedang load dari Firebase
-let _lastSavedHash  = '';     // hash data terakhir yg disimpan
+let _isSaving       = false;
+let _isLoadingCloud = false;
+let _lastSavedHash  = '';
 
 function dataHash() {
-  // Hash ringan untuk deteksi perubahan
   const d = {
     p: (window.produk||[]).length,
     l: (window.laporan||[]).length,
@@ -69,7 +68,6 @@ function showSyncBadge(status) {
   badge.style.color      = c.color;
   badge.innerHTML        = `${c.icon} <span>${c.text}</span>`;
 
-  // Auto kembali ke "Online" setelah synced/error — HANYA dari sini, tidak loop
   clearTimeout(_badgeTimeout);
   if (status === 'synced' || status === 'error') {
     _badgeTimeout = setTimeout(() => showSyncBadge('online'), 2500);
@@ -79,12 +77,12 @@ function showSyncBadge(status) {
 /* ── ERROR MESSAGES ── */
 function fbErrMsg(code) {
   const map = {
-    'auth/user-not-found':     'Email tidak ditemukan',
-    'auth/wrong-password':     'Password salah',
-    'auth/invalid-email':      'Format email tidak valid',
-    'auth/too-many-requests':  'Terlalu banyak percobaan, coba lagi nanti',
+    'auth/user-not-found':         'Email tidak ditemukan',
+    'auth/wrong-password':         'Password salah',
+    'auth/invalid-email':          'Format email tidak valid',
+    'auth/too-many-requests':      'Terlalu banyak percobaan, coba lagi nanti',
     'auth/network-request-failed': 'Tidak ada koneksi internet',
-    'auth/invalid-credential': 'Email atau password salah',
+    'auth/invalid-credential':     'Email atau password salah',
   };
   return map[code] || 'Error: ' + code;
 }
@@ -102,7 +100,6 @@ window.fbLogin = async function(email, password) {
 };
 
 window.fbLogout = async function() {
-  // Matikan semua listener dulu
   Object.values(window.FB.listeners).forEach(r => off(r));
   window.FB.listeners = {};
   window.FB.uid       = null;
@@ -112,7 +109,7 @@ window.fbLogout = async function() {
   await signOut(auth);
 };
 
-/* ── LOAD DATA (sekali saat login) ── */
+/* ── LOAD DATA ── */
 window.fbLoadAllData = async function() {
   if (!window.FB.uid || _isLoadingCloud) return;
   _isLoadingCloud = true;
@@ -121,17 +118,16 @@ window.fbLoadAllData = async function() {
     const snap = await get(tokoRef('data'));
     if (snap.exists()) {
       const data = snap.val();
-      if (data.produk)     { window.produk          = data.produk;     if (typeof window.renderProduk  === 'function') window.renderProduk(); }
-      if (data.laporan)    { window.laporan         = data.laporan;    if (typeof window.renderLaporan === 'function') window.renderLaporan(); }
-      if (data.riwayat)    { window.riwayat         = data.riwayat;    if (typeof window.renderRiwayat === 'function') window.renderRiwayat(); }
-      if (data.statistik)  window.statistikProduk   = data.statistik;
+      if (data.produk)     { window.produk    = data.produk;     if (typeof window.renderProduk  === 'function') window.renderProduk(); }
+      if (data.laporan)    { window.laporan   = data.laporan;    if (typeof window.renderLaporan === 'function') window.renderLaporan(); }
+      if (data.riwayat)    { window.riwayat   = data.riwayat;    if (typeof window.renderRiwayat === 'function') window.renderRiwayat(); }
+      if (data.statistik)  window.statistikProduk = data.statistik;
       if (data.pengaturan) {
         window.pengaturan = { ...window.pengaturan, ...data.pengaturan };
         if (typeof window.terapkanPengaturan === 'function') window.terapkanPengaturan();
       }
     }
     if (typeof window.updateDashboard === 'function') window.updateDashboard();
-    // Catat hash setelah load, supaya tidak langsung trigger save
     _lastSavedHash = dataHash();
     showSyncBadge('synced');
     if (typeof window.showToast === 'function') window.showToast('✅ Data cloud berhasil dimuat!', 'success');
@@ -148,7 +144,6 @@ window.fbLoadAllData = async function() {
 window.fbListenRealtime = function() {
   if (!window.FB.uid) return;
 
-  // Matikan listener lama
   Object.values(window.FB.listeners).forEach(r => off(r));
   window.FB.listeners = {};
 
@@ -156,7 +151,6 @@ window.fbListenRealtime = function() {
   window.FB.listeners.data = dataRef;
 
   onValue(dataRef, (snap) => {
-    // KUNCI: Jangan proses kalau sedang simpan atau load — ini sumber loop!
     if (_isSaving || _isLoadingCloud) return;
     if (!snap.exists()) return;
 
@@ -186,7 +180,6 @@ window.fbListenRealtime = function() {
       berubah = true;
     }
 
-    // Update hash supaya save berikutnya tidak salah deteksi
     if (berubah) _lastSavedHash = dataHash();
 
   }, (err) => {
@@ -200,7 +193,6 @@ window.fbSimpanSemua = async function() {
   if (!window.FB.uid) return;
   if (_isSaving || _isLoadingCloud) return;
 
-  // Cek apakah data benar-benar berubah — cegah save tanpa perlu
   const currentHash = dataHash();
   if (currentHash === _lastSavedHash) return;
 
@@ -222,14 +214,16 @@ window.fbSimpanSemua = async function() {
     console.error('fbSimpanSemua:', e);
     showSyncBadge('error');
   } finally {
-    // Delay sebelum flag dibuka, beri waktu listener tidak ikut bereaksi
     setTimeout(() => { _isSaving = false; }, 1000);
   }
 };
 
 /* ── MODAL LOGIN CLOUD ── */
 window.bukaLoginFirebase = function() {
-  if (!window.Swal) return;
+  if (!window.Swal) {
+    alert('Library Swal belum dimuat. Pastikan SweetAlert2 di-import di index.html');
+    return;
+  }
 
   if (window.FB.uid) {
     Swal.fire({
@@ -276,7 +270,6 @@ window.bukaLoginFirebase = function() {
 };
 
 /* ── AUTO AUTH STATE ── */
-let _authInitialized = false;
 onAuthStateChanged(auth, async (user) => {
   const btn = document.getElementById('btnCloudLogin');
   if (user) {
@@ -284,7 +277,6 @@ onAuthStateChanged(auth, async (user) => {
     window.FB.isOnline = true;
     showSyncBadge('online');
     await window.fbLoadAllData();
-    // Mulai listener SETELAH load selesai
     window.fbListenRealtime();
     if (btn) {
       btn.innerHTML         = `✅ <span class="btn-label">Cloud</span>`;
@@ -305,31 +297,30 @@ onAuthStateChanged(auth, async (user) => {
   }
 });
 
-/* ── INJECT TOMBOL + PATCH simpanData() ── */
-document.addEventListener('DOMContentLoaded', () => {
-  setTimeout(() => {
-    // Tombol Cloud di topbar
-    const topbarActions = document.querySelector('.header-actions');
-    if (topbarActions && !document.getElementById('btnCloudLogin')) {
-      const btn = document.createElement('button');
-      btn.id        = 'btnCloudLogin';
-      btn.onclick   = window.bukaLoginFirebase;
-      btn.innerHTML = `☁️ <span class="btn-label">Cloud</span>`;
-      btn.style.cssText = `background:rgba(99,102,241,0.15);border-color:rgba(99,102,241,0.4);color:#818cf8;`;
-      topbarActions.insertBefore(btn, topbarActions.lastElementChild);
-    }
+/* ── INJECT TOMBOL CLOUD + PATCH simpanData() ── */
+// Dipanggil dari initApp() di app.js setelah PIN berhasil
+window.injectCloudButton = function() {
+  const topbarActions = document.querySelector('.header-actions');
+  if (topbarActions && !document.getElementById('btnCloudLogin')) {
+    const btn = document.createElement('button');
+    btn.id        = 'btnCloudLogin';
+    btn.onclick   = window.bukaLoginFirebase;
+    btn.innerHTML = `☁️ <span class="btn-label">Cloud</span>`;
+    btn.style.cssText = `background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);
+      color:#818cf8;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;`;
+    topbarActions.insertBefore(btn, topbarActions.lastElementChild);
+  }
 
-    // Patch simpanData() — cloud sync hanya saat ada perubahan nyata
-    const ori = window.simpanData;
-    if (typeof ori === 'function') {
-      window.simpanData = function() {
-        ori.call(this);
-        // Debounce: tunggu 800ms setelah aksi terakhir baru sync ke cloud
-        clearTimeout(window._fbSaveTimeout);
-        window._fbSaveTimeout = setTimeout(() => {
-          if (window.FB.uid) window.fbSimpanSemua();
-        }, 800);
-      };
-    }
-  }, 500);
-});
+  // Patch simpanData() supaya auto-sync ke Firebase setiap ada perubahan
+  const ori = window.simpanData;
+  if (typeof ori === 'function' && !ori._patched) {
+    window.simpanData = function() {
+      ori.apply(this, arguments);
+      clearTimeout(window._fbSaveTimeout);
+      window._fbSaveTimeout = setTimeout(() => {
+        if (window.FB.uid) window.fbSimpanSemua();
+      }, 800);
+    };
+    window.simpanData._patched = true;
+  }
+};

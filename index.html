@@ -13,6 +13,41 @@
 </head>
 <body>
 
+  <!-- Auth Screen -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <img src="icons/icon-192.png" alt="MotoKas" style="width:72px;height:72px;border-radius:16px;">
+      <h1 class="auth-brand">MotoKas</h1>
+      <p class="auth-sub">Kasir Digital untuk Toko Motor</p>
+    </div>
+
+    <!-- Tab -->
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login" onclick="authTab('login')">Masuk</button>
+      <button class="auth-tab" id="tab-register" onclick="authTab('register')">Daftar</button>
+    </div>
+
+    <!-- Form Login -->
+    <div id="form-login">
+      <input class="auth-input" id="login-email" type="email" placeholder="Email" autocomplete="email">
+      <input class="auth-input" id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="auth-error" id="login-error"></div>
+      <button class="auth-btn" onclick="doLogin()">🔑 Masuk</button>
+    </div>
+
+    <!-- Form Register -->
+    <div id="form-register" style="display:none">
+      <input class="auth-input" id="reg-nama" type="text" placeholder="Nama Toko" autocomplete="off">
+      <input class="auth-input" id="reg-email" type="email" placeholder="Email" autocomplete="email">
+      <input class="auth-input" id="reg-password" type="password" placeholder="Password (min. 6 karakter)" autocomplete="new-password">
+      <div class="auth-error" id="reg-error"></div>
+      <button class="auth-btn" onclick="doRegister()">📝 Daftar Sekarang</button>
+    </div>
+
+    <div class="auth-version">MotoKas v4.0 Pro · Build 2025</div>
+  </div>
+</div>
 <!-- PIN Screen -->
 <div id="pin-screen">
   <div class="pin-logo">

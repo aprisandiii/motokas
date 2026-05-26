@@ -868,6 +868,33 @@ function resetAllData() {
   toast('Semua data dihapus', 'error');
 }
 
+// ===== UTILS =====
+// Format tanggal aman untuk Firebase key (tidak boleh ada "/")
+// Gunakan YYYY-MM-DD sebagai key, tampilkan DD/MM/YYYY di UI
+function tglKey(date) {
+  const d = date || new Date();
+  return d.toISOString().split('T')[0]; // "2026-05-26"
+}
+function tglDisplay(isoKey) {
+  // "2026-05-26" → "26/5/2026"
+  const [y, m, dd] = isoKey.split('-');
+  return `${parseInt(dd)}/${parseInt(m)}/${y}`;
+}
+
+function fmtRp(n) { return 'Rp ' + Math.round(n || 0).toLocaleString('id-ID'); }
+function fmtRpShort(n) {
+  n = Math.round(n || 0);
+  if (n >= 1000000) return 'Rp ' + (n / 1000000).toFixed(1) + 'jt';
+  if (n >= 1000) return 'Rp ' + (n / 1000).toFixed(0) + 'rb';
+  return 'Rp ' + n;
+}
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => el.className = 'toast', 2500);
+}
+
 // ===== AUTH =====
 function authTab(tab) {
   document.getElementById('form-login').style.display    = tab === 'login'    ? 'block' : 'none';
@@ -946,44 +973,3 @@ async function lupaPassword() {
     errEl.textContent = result.error;
   }
 }
-/* ===== FIX FIREBASE LOOP ===== */
-
-const _renderProdukAsli = renderProduk;
-const _renderLaporanAsli = renderLaporan;
-const _renderRiwayatAsli = renderRiwayat;
-const _renderDashboardAsli = renderDashboard;
-
-window.renderProduk = () => _renderProdukAsli();
-window.renderLaporan = () => _renderLaporanAsli();
-window.renderRiwayat = () => _renderRiwayatAsli();
-window.renderDashboard = () => _renderDashboardAsli();
-
-const _setDataAsli = setData;
-
-setData = function(key, val) {
-
-  _setDataAsli(key, val);
-
-  if (
-    ['produk','laporan','riwayat','settings'].includes(key)
-  ) {
-
-    clearTimeout(window._fbSaveFix);
-
-    window._fbSaveFix = setTimeout(() => {
-
-      if (
-        window.FB &&
-        window.FB.uid &&
-        typeof window.fbSimpanSemua === 'function'
-      ) {
-        window.fbSimpanSemua();
-      }
-
-    }, 1000);
-
-  }
-
-};
-
-console.log('FIX ACTIVE');

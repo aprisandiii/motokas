@@ -140,6 +140,7 @@ function initApp() {
   renderProduk();
   renderLaporan();
   renderRiwayat();
+  if (typeof window.injectCloudButton === 'function') window.injectCloudButton();
 }
 
 // ===== NAVIGATION =====

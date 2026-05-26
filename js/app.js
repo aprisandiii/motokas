@@ -15,7 +15,35 @@ function getData(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) ?? def; }
   catch { return def; }
 }
-function setData(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
+function setData(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+  // Expose ke window supaya Firebase bisa baca
+  if (key === 'produk')  window.produk  = val;
+  if (key === 'laporan') window.laporan = val;
+  if (key === 'riwayat') window.riwayat = val;
+  if (key === 'settings') window.pengaturan = val;
+  // Trigger Firebase sync
+  if (['produk','laporan','riwayat','settings'].includes(key)) {
+    clearTimeout(window._fbSaveTimeout);
+    window._fbSaveTimeout = setTimeout(() => {
+      if (window.FB && window.FB.uid && typeof window.fbSimpanSemua === 'function') {
+        window.fbSimpanSemua();
+      }
+    }, 800);
+  }
+}
+
+// Expose data awal dari localStorage ke window
+window.produk    = getData('produk', []);
+window.laporan   = getData('laporan', {});
+window.riwayat   = getData('riwayat', []);
+window.pengaturan = getData('settings', {});
+
+// Fungsi render yang bisa dipanggil Firebase
+window.renderProduk  = function() { renderProduk(); };
+window.renderLaporan = function() { renderLaporan(); renderRiwayat(); };
+window.renderRiwayat = function() { renderRiwayat(); };
+window.updateDashboard = function() { renderDashboard(); };
 
 // ===== INIT =====
 window.addEventListener('load', () => {
@@ -721,9 +749,9 @@ function restoreJSON(e) {
   reader.onload = ev => {
     try {
       const data = JSON.parse(ev.target.result);
-      if (data.produk) setData('produk', data.produk);
-      if (data.laporan) setData('laporan', data.laporan);
-      if (data.riwayat) setData('riwayat', data.riwayat);
+      if (data.produk)   setData('produk', data.produk);
+      if (data.laporan)  setData('laporan', data.laporan);
+      if (data.riwayat)  setData('riwayat', data.riwayat);
       if (data.settings) setData('settings', data.settings);
       toast('Data berhasil direstore ✓', 'success');
       initApp();
@@ -781,6 +809,9 @@ function resetAllData() {
   const konfirm = prompt('Ketik "HAPUS SEMUA" untuk konfirmasi:');
   if (konfirm !== 'HAPUS SEMUA') { toast('Dibatalkan'); return; }
   ['produk', 'laporan', 'riwayat'].forEach(k => localStorage.removeItem(k));
+  window.produk  = [];
+  window.laporan = {};
+  window.riwayat = [];
   cart = [];
   updateCartBadge();
   renderCart();

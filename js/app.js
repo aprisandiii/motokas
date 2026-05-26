@@ -955,3 +955,17 @@ function logoutAkun() {
   updateCartBadge();
   toast('Berhasil logout ✓');
 }
+async function lupaPassword() {
+  const email = document.getElementById('login-email').value.trim();
+  const errEl = document.getElementById('login-error');
+  if (!email) { errEl.textContent = 'Masukkan email dulu sebelum reset password'; return; }
+  errEl.textContent = 'Mengirim email reset...';
+  const result = await window.fbResetPassword(email);
+  if (result.ok) {
+    errEl.style.color = 'var(--green)';
+    errEl.textContent = '✓ Email reset password sudah dikirim, cek inbox kamu';
+  } else {
+    errEl.style.color = 'var(--red)';
+    errEl.textContent = result.error;
+  }
+}

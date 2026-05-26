@@ -29,11 +29,12 @@ let _isLoadingCloud = false;
 let _lastSavedHash  = '';
 
 function dataHash() {
+  const laporan = window.laporan || {};
   const d = {
     p: (window.produk||[]).length,
-    l: (window.laporan||[]).length,
+    l: Object.keys(laporan).length,
     r: (window.riwayat||[]).length,
-    t: (window.laporan||[]).reduce((s,i)=>s+(i.total||0),0)
+    t: Object.values(laporan).reduce((s,i)=>s+(i.omzet||0),0)
   };
   return JSON.stringify(d);
 }

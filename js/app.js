@@ -654,6 +654,7 @@ function renderTerlaris() {
     } else {
       const parts = tgl.split('/');
       if (parts.length === 3) d = new Date(parts[2], parts[1] - 1, parts[0]);
+    }
     if (d && d.getMonth() === bulan && d.getFullYear() === tahun) {
       Object.entries(data.terlaris || {}).forEach(([key, val]) => {
         // Support format baru {nama, qty} dan format lama angka langsung

@@ -309,7 +309,7 @@ onAuthStateChanged(auth, async (user) => {
 document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     // Tombol Cloud di topbar
-    const topbarActions = document.querySelector('.topbar-actions');
+    const topbarActions = document.querySelector('.header-actions');
     if (topbarActions && !document.getElementById('btnCloudLogin')) {
       const btn = document.createElement('button');
       btn.id        = 'btnCloudLogin';

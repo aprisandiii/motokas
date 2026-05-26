@@ -6,7 +6,7 @@
 // ============================================================
 
 // ── SECRET SALT (ganti sebelum deploy! jaga kerahasiaan ini) ─
-const _SALT = 'SuksesBersamaMotokas#2026!';
+const _SALT = 'MK2025#motokas$rahasia!';
 
 // ── TIER ─────────────────────────────────────────────────────
 const TIER = {
@@ -114,8 +114,17 @@ function canUseCloudSync() { return getTierConfig().cloudSync; }
 function canExportAll()    { return getTierConfig().exportAll; }
 
 // ── AKTIVASI KODE ─────────────────────────────────────────────
+function getEmailLogin() {
+  // Coba semua kemungkinan lokasi email dari Firebase
+  return (window.FB?.auth?.currentUser?.email)
+    || (window.FB?.email)
+    || (window.firebase?.auth?.()?.currentUser?.email)
+    || localStorage.getItem('mk_email')
+    || '';
+}
+
 function aktivasiKode(kode) {
-  const email = (window.FB && window.FB.email) ? window.FB.email : '';
+  const email = getEmailLogin();
   if (!email) {
     toast('Login dulu untuk aktivasi', 'error');
     return false;
@@ -269,7 +278,7 @@ function resetLisensi() {
 }
 
 function beliLisensi() {
-  const email = (window.FB && window.FB.email) ? window.FB.email : 'email-anda';
+  const email = getEmailLogin() || 'email-anda';
   const wa = `https://wa.me/6281234567890?text=Halo%2C%20saya%20mau%20beli%20lisensi%20MotoKas.%0AEmail%3A%20${encodeURIComponent(email)}`;
   window.open(wa, '_blank');
 }

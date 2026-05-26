@@ -39,18 +39,25 @@ window.laporan   = getData('laporan', {});
 window.riwayat   = getData('riwayat', []);
 window.pengaturan = getData('settings', {});
 
-// Fungsi render yang bisa dipanggil Firebase
-window.renderProduk  = function() {
+// ===== BUGFIX: window.render* wrapper diperbaiki =====
+// Sebelumnya window.renderProduk memanggil renderProduk() yang sudah
+// di-override oleh window.renderProduk sendiri → infinite recursion.
+// Solusi: simpan referensi fungsi lokal SEBELUM di-override, lalu
+// panggil referensi tersebut dari dalam wrapper.
+// Wrapper ini akan di-assign SETELAH fungsi lokal didefinisikan (di bawah).
+
+// Expose fungsi agar Firebase bisa memanggil setelah sync data
+window.syncProdukDariFirebase = function() {
   const produk = window.produk || [];
   if (produk.length) localStorage.setItem('produk', JSON.stringify(produk));
   renderProduk();
 };
-window.renderLaporan = function() {
+window.syncLaporanDariFirebase = function() {
   const laporan = window.laporan || {};
   if (Object.keys(laporan).length) localStorage.setItem('laporan', JSON.stringify(laporan));
   renderLaporan(); renderRiwayat();
 };
-window.renderRiwayat = function() {
+window.syncRiwayatDariFirebase = function() {
   const riwayat = window.riwayat || [];
   if (riwayat.length) localStorage.setItem('riwayat', JSON.stringify(riwayat));
   renderRiwayat();

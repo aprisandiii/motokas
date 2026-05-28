@@ -1,68 +1,73 @@
 // ============================================================
 //  MotoKas — Sistem Aktivasi License
 //  File: js/aktivasi.js
-//  Cara kerja: kode aktivasi di-generate berbasis algoritma
-//  HMAC-like sederhana (tanpa server) — cukup aman untuk PWA.
+//  Perbaikan:
+//   1. Semua pemanggilan *Ori() dalam guard pakai window.*Ori()
+//   2. window.injectCloudButton DIHAPUS — hanya ada di firebase.js
+//   3. Guard Swal sebelum showUpgradePopup agar tidak crash offline
+//   4. patchAppFunctions pakai retry + flag _appPatched
+//   5. Script ini di-load dengan defer (lihat index.html)
 // ============================================================
 
-// ── SECRET SALT (ganti sebelum deploy! jaga kerahasiaan ini) ─
+// ── SECRET SALT ──────────────────────────────────────────────
 const _SALT = 'SuksesBersamaMotoKas#2026';
 
 // ── TIER ─────────────────────────────────────────────────────
 const TIER = {
-  STARTER : 'starter',   // gratis, maks 20 produk
-  BASIC   : 'basic',     // bayar — produk unlimited, tanpa cloud
-  PRO     : 'pro',       // bayar — semua fitur
+  STARTER : 'starter',
+  BASIC   : 'basic',
+  PRO     : 'pro',
 };
 
 // ── BATAS FITUR PER TIER ──────────────────────────────────────
 const TIER_CONFIG = {
   starter : {
-    label       : 'Starter',
-    emoji       : '🆓',
-    maxProduk   : 20,
-    sheets      : false,
-    cloudSync   : false,
-    exportAll   : false,
-    color       : '#5a5550',
+    label     : 'Starter',
+    emoji     : '🆓',
+    maxProduk : 20,
+    sheets    : false,
+    cloudSync : false,
+    exportAll : false,
+    color     : '#5a5550',
   },
   basic : {
-    label       : 'Basic',
-    emoji       : '⭐',
-    maxProduk   : Infinity,
-    sheets      : false,
-    cloudSync   : false,
-    exportAll   : true,
-    color       : '#f5c542',
+    label     : 'Basic',
+    emoji     : '⭐',
+    maxProduk : Infinity,
+    sheets    : false,
+    cloudSync : false,
+    exportAll : true,
+    color     : '#f5c542',
   },
   pro : {
-    label       : 'Pro',
-    emoji       : '🚀',
-    maxProduk   : Infinity,
-    sheets      : true,
-    cloudSync   : true,
-    exportAll   : true,
-    color       : '#4caf7d',
+    label     : 'Pro',
+    emoji     : '🚀',
+    maxProduk : Infinity,
+    sheets    : true,
+    cloudSync : true,
+    exportAll : true,
+    color     : '#4caf7d',
   },
 };
 
-// ── SIMPAN / BACA LICENSE (terikat ke uid Firebase) ──────────
+// ── SIMPAN / BACA LICENSE ─────────────────────────────────────
 function _licenseKey() {
-  // Key unik per akun — beda akun = beda lisensi
-  const uid = (window.FB && window.FB.uid)
-    || (window.FB && window.FB.auth && window.FB.auth.currentUser && window.FB.auth.currentUser.uid)
-    || 'guest';
+  const uid = (window.FB && window.FB.uid) || 'guest';
   return 'mk_license_' + uid;
 }
 function getLicense() {
-  try { return JSON.parse(localStorage.getItem(_licenseKey())) || { tier: TIER.STARTER, kode: null, aktifSejak: null }; }
-  catch { return { tier: TIER.STARTER, kode: null, aktifSejak: null }; }
+  try {
+    return JSON.parse(localStorage.getItem(_licenseKey()))
+      || { tier: TIER.STARTER, kode: null, aktifSejak: null };
+  } catch {
+    return { tier: TIER.STARTER, kode: null, aktifSejak: null };
+  }
 }
 function setLicense(obj) {
   localStorage.setItem(_licenseKey(), JSON.stringify(obj));
 }
 
-// ── GENERATOR HASH (djb2 sederhana) ──────────────────────────
+// ── GENERATOR HASH (djb2) ─────────────────────────────────────
 function _hash(str) {
   let h = 5381;
   for (let i = 0; i < str.length; i++) h = ((h << 5) + h) ^ str.charCodeAt(i);
@@ -70,10 +75,8 @@ function _hash(str) {
 }
 
 // ── FORMAT KODE: TIER-XXXX-XXXX ──────────────────────────────
-// Kode digenerate dari: hash(TIER + EMAIL + SALT)
-// Anda generate manual via panel admin di bawah (fungsi generateKode)
 function generateKode(tier, email) {
-  const raw   = (tier + '|' + email.toLowerCase().trim() + '|' + _SALT);
+  const raw   = tier + '|' + email.toLowerCase().trim() + '|' + _SALT;
   const h     = _hash(raw);
   const part1 = h.slice(0, 4);
   const part2 = h.slice(4, 8);
@@ -82,35 +85,27 @@ function generateKode(tier, email) {
 }
 
 // ── VALIDASI KODE ─────────────────────────────────────────────
-// Kode valid jika cocok dengan email user yang sedang login
 function validateKode(kode, email) {
   kode = kode.trim().toUpperCase();
-  // Cek prefix untuk deteksi tier
   let tier = null;
-  if (kode.startsWith('PRO-')) tier = TIER.PRO;
+  if (kode.startsWith('PRO-'))      tier = TIER.PRO;
   else if (kode.startsWith('BSC-')) tier = TIER.BASIC;
   else return { valid: false, tier: null, msg: 'Format kode salah (harus PRO-XXXX-XXXX atau BSC-XXXX-XXXX)' };
 
   const expected = generateKode(tier, email);
-  if (kode === expected) {
-    return { valid: true, tier, msg: 'Kode valid ✓' };
-  }
+  if (kode === expected) return { valid: true, tier, msg: 'Kode valid ✓' };
   return { valid: false, tier: null, msg: 'Kode tidak valid atau bukan milik akun ini' };
 }
 
 // ── GETTER TIER AKTIF ─────────────────────────────────────────
-function getTier() {
-  return getLicense().tier || TIER.STARTER;
-}
-function getTierConfig() {
-  return TIER_CONFIG[getTier()] || TIER_CONFIG.starter;
-}
-function isPro()   { return getTier() === TIER.PRO; }
-function isBasic() { return getTier() === TIER.BASIC || isPro(); }
+function getTier()       { return getLicense().tier || TIER.STARTER; }
+function getTierConfig() { return TIER_CONFIG[getTier()] || TIER_CONFIG.starter; }
+function isPro()         { return getTier() === TIER.PRO; }
+function isBasic()       { return getTier() === TIER.BASIC || isPro(); }
 
 // ── CEK BATAS PRODUK ──────────────────────────────────────────
 function canAddProduk() {
-  const cfg   = getTierConfig();
+  const cfg    = getTierConfig();
   const jumlah = (getData('produk', [])).length;
   return jumlah < cfg.maxProduk;
 }
@@ -120,27 +115,23 @@ function canUseSheets()    { return getTierConfig().sheets; }
 function canUseCloudSync() { return getTierConfig().cloudSync; }
 function canExportAll()    { return getTierConfig().exportAll; }
 
-// ── AKTIVASI KODE ─────────────────────────────────────────────
+// Expose ke window agar firebase.js bisa cek tier
+window.canUseCloudSync = canUseCloudSync;
+
+// ── EMAIL LOGIN ───────────────────────────────────────────────
 function getEmailLogin() {
-  // Coba semua kemungkinan lokasi email dari Firebase
-  return (window.FB?.auth?.currentUser?.email)
-    || (window.FB?.email)
-    || (window.firebase?.auth?.()?.currentUser?.email)
+  return (window.FB && window.FB.email)
+    || (window.FB && window.FB.auth && window.FB.auth.currentUser && window.FB.auth.currentUser.email)
     || localStorage.getItem('mk_email')
     || '';
 }
 
+// ── AKTIVASI KODE ─────────────────────────────────────────────
 function aktivasiKode(kode) {
   const email = getEmailLogin();
-  if (!email) {
-    toast('Login dulu untuk aktivasi', 'error');
-    return false;
-  }
+  if (!email) { toast('Login dulu untuk aktivasi', 'error'); return false; }
   const result = validateKode(kode, email);
-  if (!result.valid) {
-    toast(result.msg, 'error');
-    return false;
-  }
+  if (!result.valid) { toast(result.msg, 'error'); return false; }
   setLicense({ tier: result.tier, kode: kode.trim().toUpperCase(), aktifSejak: new Date().toISOString() });
   toast(`Aktivasi ${result.tier.toUpperCase()} berhasil! 🎉`, 'success');
   renderBadgeTier();
@@ -150,7 +141,7 @@ function aktivasiKode(kode) {
 
 // ── RENDER BADGE TIER DI HEADER ───────────────────────────────
 function renderBadgeTier() {
-  const cfg = getTierConfig();
+  const cfg      = getTierConfig();
   const existing = document.getElementById('tier-badge');
   if (existing) existing.remove();
 
@@ -163,12 +154,14 @@ function renderBadgeTier() {
     background:${cfg.color}22;color:${cfg.color};
     border:1px solid ${cfg.color}55;margin-left:6px;
   `;
-  badge.title = 'Klik untuk kelola lisensi';
+  badge.title   = 'Klik untuk kelola lisensi';
   badge.onclick = () => openModalAktivasi();
 
   const sub = document.getElementById('hdr-sub');
   if (sub) sub.appendChild(badge);
 }
+// Expose agar firebase.js bisa refresh badge setelah sync
+window.renderBadgeTier = renderBadgeTier;
 
 // ── INJECT MODAL AKTIVASI KE DOM ──────────────────────────────
 function injectModalAktivasi() {
@@ -180,7 +173,6 @@ function injectModalAktivasi() {
       <div class="modal-handle"></div>
       <div class="modal-title">🔑 Lisensi MotoKas</div>
 
-      <!-- Status lisensi aktif -->
       <div id="aktivasi-status-card" style="
         border-radius:12px;padding:14px 16px;margin-bottom:16px;
         background:var(--card);border:1px solid var(--border);
@@ -195,7 +187,6 @@ function injectModalAktivasi() {
         <div id="akt-fitur-list" style="margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:12px"></div>
       </div>
 
-      <!-- Input kode aktivasi -->
       <div id="aktivasi-form-section">
         <div class="modal-label" style="margin-bottom:6px">Masukkan Kode Aktivasi</div>
         <input class="modal-input" id="input-kode-aktivasi"
@@ -213,7 +204,6 @@ function injectModalAktivasi() {
         </button>
       </div>
 
-      <!-- Tombol reset (jika sudah aktif) -->
       <div id="aktivasi-reset-section" style="display:none;margin-top:12px">
         <button class="btn-danger" style="width:100%" onclick="resetLisensi()">
           🗑 Hapus Lisensi (kembali ke Starter)
@@ -228,7 +218,6 @@ function injectModalAktivasi() {
 
   document.body.insertAdjacentHTML('beforeend', html);
 
-  // Klik di luar modal = tutup
   document.getElementById('modal-aktivasi').addEventListener('click', e => {
     if (e.target.id === 'modal-aktivasi') closeModal('modal-aktivasi');
   });
@@ -243,15 +232,18 @@ function openModalAktivasi() {
   document.getElementById('akt-tier-emoji').textContent = cfg.emoji;
   document.getElementById('akt-tier-label').textContent = 'Paket ' + cfg.label;
 
-  const since = lic.aktifSejak ? new Date(lic.aktifSejak).toLocaleDateString('id-ID') : '-';
-  document.getElementById('akt-tier-desc').textContent  =
-    lic.tier === TIER.STARTER ? 'Gratis · Maks 20 produk' : `Aktif sejak ${since}`;
+  const since = lic.aktifSejak
+    ? new Date(lic.aktifSejak).toLocaleDateString('id-ID')
+    : '-';
+  document.getElementById('akt-tier-desc').textContent =
+    lic.tier === TIER.STARTER
+      ? 'Gratis · Maks 20 produk'
+      : `Aktif sejak ${since}`;
 
-  // Daftar fitur
   const fiturList = [
     { label: `Produk (maks ${cfg.maxProduk === Infinity ? '∞' : cfg.maxProduk})`, ok: true },
     { label: 'Export CSV / TXT',  ok: cfg.exportAll },
-    { label: 'Google Sheets',     ok: cfg.sheets },
+    { label: 'Google Sheets',     ok: cfg.sheets    },
     { label: 'Cloud Sync',        ok: cfg.cloudSync },
   ];
   document.getElementById('akt-fitur-list').innerHTML = fiturList.map(f => `
@@ -260,7 +252,6 @@ function openModalAktivasi() {
       <span style="color:${f.ok ? 'var(--text1)' : 'var(--text3)'}">${f.label}</span>
     </div>`).join('');
 
-  // Tampilkan / sembunyikan reset
   document.getElementById('aktivasi-reset-section').style.display =
     lic.tier !== TIER.STARTER ? 'block' : 'none';
 
@@ -270,10 +261,7 @@ function openModalAktivasi() {
 function doAktivasi() {
   const kode = document.getElementById('input-kode-aktivasi').value;
   if (!kode) { toast('Masukkan kode aktivasi', 'error'); return; }
-  if (aktivasiKode(kode)) {
-    // Refresh modal konten
-    setTimeout(openModalAktivasi, 300);
-  }
+  if (aktivasiKode(kode)) setTimeout(openModalAktivasi, 300);
 }
 
 function resetLisensi() {
@@ -286,11 +274,12 @@ function resetLisensi() {
 
 function beliLisensi() {
   const email = getEmailLogin() || 'email-anda';
-  const wa = `https://wa.me/6285798132246?text=Halo%2C%20saya%20mau%20beli%20lisensi%20MotoKas.%0AEmail%3A%20${encodeURIComponent(email)}`;
+  const wa = `https://wa.me/6281234567890?text=Halo%2C%20saya%20mau%20beli%20lisensi%20MotoKas.%0AEmail%3A%20${encodeURIComponent(email)}`;
   window.open(wa, '_blank');
 }
 
 // ── POPUP UPGRADE ─────────────────────────────────────────────
+// FIX: Guard Swal agar tidak crash saat offline / CDN gagal load
 function showUpgradePopup(fitur = '') {
   const pesan = {
     produk    : '💡 Paket Starter hanya mendukung hingga 20 produk.',
@@ -300,14 +289,20 @@ function showUpgradePopup(fitur = '') {
   };
   const msg = pesan[fitur] || '🔒 Fitur ini memerlukan upgrade paket.';
 
+  // FIX: fallback jika SweetAlert2 tidak tersedia
+  if (!window.Swal) {
+    if (confirm(msg + '\n\nBuka WhatsApp untuk beli lisensi?')) beliLisensi();
+    return;
+  }
+
   Swal.fire({
-    title       : 'Upgrade Diperlukan',
-    html        : `<p style="color:#aaa;font-size:14px">${msg}</p>
-                   <p style="color:#aaa;font-size:13px;margin-top:8px">
-                   Beli kode aktivasi via WhatsApp dan unlock semua fitur!</p>`,
-    icon        : 'warning',
-    background  : '#1a1a1a',
-    color       : '#f0ece6',
+    title              : 'Upgrade Diperlukan',
+    html               : `<p style="color:#aaa;font-size:14px">${msg}</p>
+                          <p style="color:#aaa;font-size:13px;margin-top:8px">
+                          Beli kode aktivasi via WhatsApp dan unlock semua fitur!</p>`,
+    icon               : 'warning',
+    background         : '#1a1a1a',
+    color              : '#f0ece6',
     confirmButtonColor : '#f5c542',
     confirmButtonText  : '💬 Beli Sekarang',
     showCancelButton   : true,
@@ -315,11 +310,12 @@ function showUpgradePopup(fitur = '') {
     cancelButtonColor  : '#333',
   }).then(r => { if (r.isConfirmed) beliLisensi(); });
 }
+// Expose agar firebase.js bisa memanggil dari tombol cloud
+window.showUpgradePopup = showUpgradePopup;
 
-// ── GUARD FUNCTIONS (dipanggil dari app.js) ───────────────────
+// ── GUARD FUNCTIONS ───────────────────────────────────────────
 
-// Guard tambah produk
-const _oriSimpanProduk = window.simpanProdukOri || null;
+// FIX: semua pemanggilan *Ori() harus via window.*Ori()
 function guardSimpanProduk() {
   const editId = parseInt(document.getElementById('edit-produk-id').value) || 0;
   if (!editId && !canAddProduk()) {
@@ -327,56 +323,67 @@ function guardSimpanProduk() {
     showUpgradePopup('produk');
     return;
   }
-  simpanProdukOri();
+  // FIX: window.simpanProdukOri bukan simpanProdukOri (var lokal tidak ada)
+  if (typeof window.simpanProdukOri === 'function') window.simpanProdukOri();
 }
 
-// Guard Sheets
 function guardKirimSheets(trxData) {
   if (!canUseSheets()) { showUpgradePopup('sheets'); return; }
-  kirimSheetsOri(trxData);
-}
-function guardTesSheets() {
-  if (!canUseSheets()) { showUpgradePopup('sheets'); return; }
-  tesSheetsOri();
+  if (typeof window.kirimSheetsOri === 'function') window.kirimSheetsOri(trxData);
 }
 
-// Guard Export
+function guardTesSheets() {
+  if (!canUseSheets()) { showUpgradePopup('sheets'); return; }
+  if (typeof window.tesSheetsOri === 'function') window.tesSheetsOri();
+}
+
 function guardExportCSV() {
   if (!canExportAll()) { showUpgradePopup('export'); return; }
-  exportCSVOri();
+  if (typeof window.exportCSVOri === 'function') window.exportCSVOri();
 }
+
 function guardExportTXT() {
   if (!canExportAll()) { showUpgradePopup('export'); return; }
-  exportTXTOri();
+  if (typeof window.exportTXTOri === 'function') window.exportTXTOri();
 }
 
 // ── PATCH APP.JS FUNCTIONS ────────────────────────────────────
-// Rename fungsi asli, lalu ganti dengan guard.
-// Dipanggil sekali setelah app.js selesai load.
+// FIX: Tambah flag _appPatched + retry agar tidak race condition
+// dengan firebase.js (yang merupakan ES module / defer)
 function patchAppFunctions() {
-  // Tambah produk
-  if (typeof simpanProduk === 'function') {
-    window.simpanProdukOri = simpanProduk;
+  if (window._appPatched) return;
+
+  let patched = 0;
+
+  if (typeof window.simpanProduk === 'function' && !window.simpanProdukOri) {
+    window.simpanProdukOri = window.simpanProduk;
     window.simpanProduk    = guardSimpanProduk;
+    patched++;
   }
-  // Kirim Sheets
-  if (typeof kirimSheets === 'function') {
-    window.kirimSheetsOri = kirimSheets;
+  if (typeof window.kirimSheets === 'function' && !window.kirimSheetsOri) {
+    window.kirimSheetsOri = window.kirimSheets;
     window.kirimSheets    = guardKirimSheets;
+    patched++;
   }
-  // Tes koneksi Sheets
-  if (typeof tesSheets === 'function') {
-    window.tesSheetsOri = tesSheets;
+  if (typeof window.tesSheets === 'function' && !window.tesSheetsOri) {
+    window.tesSheetsOri = window.tesSheets;
     window.tesSheets    = guardTesSheets;
+    patched++;
   }
-  // Export
-  if (typeof exportCSV === 'function') {
-    window.exportCSVOri = exportCSV;
+  if (typeof window.exportCSV === 'function' && !window.exportCSVOri) {
+    window.exportCSVOri = window.exportCSV;
     window.exportCSV    = guardExportCSV;
+    patched++;
   }
-  if (typeof exportTXT === 'function') {
-    window.exportTXTOri = exportTXT;
+  if (typeof window.exportTXT === 'function' && !window.exportTXTOri) {
+    window.exportTXTOri = window.exportTXT;
     window.exportTXT    = guardExportTXT;
+    patched++;
+  }
+
+  // Semua 5 fungsi berhasil di-patch → set flag
+  if (patched >= 5) {
+    window._appPatched = true;
   }
 }
 
@@ -386,23 +393,23 @@ function injectAktivasiSettings() {
   if (!settingsPage || document.getElementById('section-aktivasi')) return;
 
   const section = document.createElement('div');
-  section.id = 'section-aktivasi';
+  section.id    = 'section-aktivasi';
   section.innerHTML = `
     <div class="section-title">🔑 Lisensi & Aktivasi</div>
     <div class="settings-section">
       <div class="settings-toggle-row">
         <div class="toggle-info">
           <div class="toggle-title" id="akt-settings-label">Paket Starter</div>
-          <div class="toggle-desc" id="akt-settings-desc">Gratis · Maks 20 produk</div>
+          <div class="toggle-desc"  id="akt-settings-desc">Gratis · Maks 20 produk</div>
         </div>
         <button class="btn-primary" onclick="openModalAktivasi()">Kelola</button>
       </div>
     </div>`;
 
   // Sisipkan sebelum "Zona Berbahaya"
-  const danger = settingsPage.querySelector('.section-title:last-of-type');
+  const allTitles = settingsPage.querySelectorAll('.section-title');
+  const danger    = allTitles[allTitles.length - 1];
   if (danger) {
-    const dangerSection = danger.nextElementSibling;
     settingsPage.insertBefore(section, danger);
   } else {
     settingsPage.appendChild(section);
@@ -423,40 +430,32 @@ function updateAktivasiSettingsLabel() {
   }
 }
 
-// ── CLOUD SYNC GUARD ─────────────────────────────────────────
-// Dipanggil dari firebase.js sebelum sync
-window.canUseCloudSync = canUseCloudSync;
-
-// ── INJECT TOMBOL CLOUD DI HEADER (dipanggil dari initApp) ───
-window.injectCloudButton = function() {
-  if (document.getElementById('btn-cloud')) return;
-  const btn = document.createElement('button');
-  btn.id = 'btn-cloud';
-  btn.className = 'icon-btn';
-  btn.title = 'Cloud Sync';
-  btn.textContent = '☁️';
-  btn.onclick = () => {
-    if (!canUseCloudSync()) { showUpgradePopup('cloudSync'); return; }
-    toast('Cloud sync aktif ✓');
-  };
-  const actions = document.querySelector('.header-actions');
-  if (actions) actions.insertBefore(btn, actions.firstChild);
-};
-
 // ── INIT ──────────────────────────────────────────────────────
-document.addEventListener('DOMContentLoaded', () => {
-  // Patch dilakukan setelah semua script selesai
-  setTimeout(() => {
-    patchAppFunctions();
-    renderBadgeTier();
-    injectAktivasiSettings();
-  }, 100);
-});
+// FIX: defer-safe — script ini di-load dengan defer, jadi
+// DOMContentLoaded sudah berlalu saat script berjalan.
+// Gunakan requestIdleCallback / setTimeout bertingkat untuk retry patch.
+function initAktivasi() {
+  patchAppFunctions();
 
-// ============================================================
-//  PANEL ADMIN — GENERATOR KODE (untuk Anda sebagai pemilik)
-//  Buka konsol browser → ketik: generateKodeAdmin('pro','user@email.com')
-// ============================================================
+  // Retry sekali jika belum semua ter-patch (edge case module late-load)
+  if (!window._appPatched) {
+    setTimeout(() => {
+      patchAppFunctions();
+    }, 500);
+  }
+
+  renderBadgeTier();
+  injectAktivasiSettings();
+}
+
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initAktivasi);
+} else {
+  // DOM sudah siap (script dimuat dengan defer, jalan setelah parse)
+  initAktivasi();
+}
+
+// ── PANEL ADMIN — GENERATOR KODE ─────────────────────────────
 window.generateKodeAdmin = function(tier, email) {
   if (!['basic','pro'].includes(tier)) { console.error('tier harus "basic" atau "pro"'); return; }
   const kode = generateKode(tier, email);

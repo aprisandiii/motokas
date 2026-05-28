@@ -31,15 +31,15 @@ let _isSaving       = false;
 let _isLoadingCloud = false;
 let _lastSavedHash  = '';
 
+// FIX #1 — hash pakai isi konten nyata, bukan sekadar hitungan/jumlah
+// Sebelumnya hanya menghitung .length dan total omzet sehingga perubahan
+// detail (nama produk, harga, dll) tidak terdeteksi → data tidak tersimpan.
 function dataHash() {
-  const laporan = window.laporan || {};
-  const d = {
-    p: (window.produk  || []).length,
-    l: Object.keys(laporan).length,
-    r: (window.riwayat || []).length,
-    t: Object.values(laporan).reduce((s, i) => s + (i.omzet || 0), 0)
-  };
-  return JSON.stringify(d);
+  return JSON.stringify({
+    p: window.produk          || [],
+    l: window.laporan         || {},
+    r: (window.riwayat || []).slice(0, 20), // 20 riwayat terbaru sudah cukup mewakili perubahan
+  });
 }
 
 function tokoRef(path) {
@@ -132,14 +132,15 @@ window.fbResetPassword = async function(email) {
   }
 };
 
+// FIX #3 — fbLogout tidak boleh hapus data lokal toko.
+// Sebelumnya clearLocalData() + hapus settings & pin saat logout,
+// akibatnya data hilang dari device setelah logout meski belum tersimpan ke cloud.
+// Sekarang hanya hapus credentials auth (mk_email), data toko tetap aman di lokal.
 window.fbLogout = async function() {
   Object.values(window.FB.listeners).forEach(r => off(r));
   window.FB.listeners = {};
 
-  clearLocalData();
-  localStorage.removeItem('settings');
-  localStorage.removeItem('prefs');
-  localStorage.removeItem('pin');
+  // Hanya hapus kredensial login, BUKAN data toko
   localStorage.removeItem('mk_email');
 
   window.FB.uid      = null;
@@ -156,16 +157,21 @@ window.fbLogout = async function() {
 };
 
 /* ── LOAD DATA ── */
+// FIX #2 — fbLoadAllData tidak boleh clearLocalData() di awal.
+// Sebelumnya data lokal dihapus dulu sebelum cloud selesai dimuat.
+// Kalau cloud kosong atau koneksi lambat/gagal → data tampil kosong.
+// Sekarang: data lokal hanya diganti kalau cloud benar-benar punya data.
+// Kalau cloud kosong → upload data lokal yang ada ke cloud (misal pindah device pertama kali).
+// Kalau cloud error → data lokal tetap aman, tidak dihapus.
 window.fbLoadAllData = async function() {
   if (!window.FB.uid || _isLoadingCloud) return;
   _isLoadingCloud = true;
   showSyncBadge('syncing');
 
-  clearLocalData();
-
   try {
     const snap = await get(tokoRef('data'));
     if (snap.exists()) {
+      // Cloud punya data → replace lokal per-key
       const data = snap.val();
       if (data.produk) {
         window.produk = data.produk;
@@ -188,17 +194,24 @@ window.fbLoadAllData = async function() {
         localStorage.setItem('settings', JSON.stringify(window.pengaturan));
         if (typeof window.terapkanPengaturan === 'function') window.terapkanPengaturan();
       }
+      _lastSavedHash = dataHash();
     } else {
+      // Cloud kosong (akun baru / pertama kali pindah device) →
+      // upload data lokal yang ada supaya tidak hilang
       syncProduk();
       syncLaporan();
       syncRiwayat();
+      _lastSavedHash = ''; // paksa fbSimpanSemua jalan
+      if (typeof window.fbSimpanSemua === 'function') {
+        await window.fbSimpanSemua();
+      }
     }
 
     if (typeof window.updateDashboard === 'function') window.updateDashboard();
     if (typeof window.renderBadgeTier === 'function') window.renderBadgeTier();
-    _lastSavedHash = dataHash();
     showSyncBadge('synced');
   } catch(e) {
+    // Error jaringan → jangan hapus data lokal, cukup tampilkan error
     console.error('fbLoadAllData:', e);
     showSyncBadge('error');
   } finally {
@@ -351,17 +364,14 @@ onAuthStateChanged(auth, async (user) => {
     window.FB.uid      = user.uid;
     window.FB.email    = user.email;
     window.FB.isOnline = true;
-    window.FB.isReady  = true; // FIX: tandai FB sudah siap agar tryFirebaseLoad() bisa jalan
+    window.FB.isReady  = true;
     localStorage.setItem('mk_email', user.email);
 
-    // Jika PIN sudah dimasukkan (session aktif / tab lain)
     if (isAppActive()) {
       showSyncBadge('online');
       await window.fbLoadAllData();
       window.fbListenRealtime();
     } else {
-      // PIN belum dimasukkan — tandai online saja
-      // initApp() akan trigger fbLoadAllData via tryFirebaseLoad() setelah PIN berhasil
       showSyncBadge('online');
     }
 

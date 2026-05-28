@@ -31,21 +31,16 @@ function setData(key, val) {
   }
 }
 
-// Expose getData & setData ke window agar aktivasi.js bisa pakai
-// PENTING: assign langsung, JANGAN bungkus dalam fungsi agar tidak rekursif
 window.getData = getData;
 window.setData = setData;
 
-// Expose data awal dari localStorage ke window
 window.produk     = getData('produk', []);
 window.laporan    = getData('laporan', {});
 window.riwayat    = getData('riwayat', []);
 window.pengaturan = getData('settings', {});
 
-// Flag PIN sudah berhasil
 window._pinPassed = false;
 
-// Expose resetCartState agar firebase.js (ES module) bisa reset state kasir
 window.resetCartState = function() {
   cart          = [];
   diskonMode    = 'rp';
@@ -61,7 +56,6 @@ window.resetCartState = function() {
   if (kemRow) kemRow.style.display = 'none';
 };
 
-// Expose fungsi agar Firebase bisa memanggil setelah sync data
 window.syncProdukDariFirebase = function() {
   const produk = window.produk || [];
   if (produk.length) localStorage.setItem('produk', JSON.stringify(produk));
@@ -80,32 +74,24 @@ window.syncRiwayatDariFirebase = function() {
 window.updateDashboard = function() { renderDashboard(); };
 
 // ===== HELPER: tampilkan layar secara eksklusif =====
-// FIX UTAMA: satu fungsi terpusat untuk switch layar, mencegah elemen
-// saling menutupi akibat display yang tidak sinkron di banyak tempat
 function showScreen(name) {
-  // name: 'auth' | 'pin' | 'app'
   const screens = {
     auth: document.getElementById('auth-screen'),
     pin:  document.getElementById('pin-screen'),
     app:  document.getElementById('app'),
   };
 
-  // Sembunyikan semua dulu
   Object.values(screens).forEach(el => { if (el) el.style.display = 'none'; });
 
-  // Tampilkan yang diminta
   if (screens[name]) {
     screens[name].style.display = name === 'pin' || name === 'auth' ? 'flex' : 'block';
   }
 
-  // Pastikan install-banner tidak menutupi pin-screen
-  // dengan menurunkan z-index-nya saat pin/auth aktif
   const banner = document.getElementById('install-banner');
   if (banner) {
     banner.style.zIndex = (name === 'app') ? '1000' : '-1';
   }
 
-  // Hapus overlay yang mungkin masih ada dari sesi sebelumnya
   if (name === 'pin' || name === 'auth') {
     const staleOverlay = document.getElementById('force-pin-overlay');
     if (staleOverlay) staleOverlay.remove();
@@ -113,9 +99,6 @@ function showScreen(name) {
     if (resetOverlay) resetOverlay.remove();
   }
 
-  // FIX: reset currentPin setiap kali pin-screen tampil
-  // agar sisa PIN dari sesi sebelumnya tidak terbawa ke sesi baru
-  // dan autocomplete browser tidak bisa trigger checkPin secara otomatis
   if (name === 'pin') {
     currentPin = '';
     updatePinDots();
@@ -148,7 +131,6 @@ window.addEventListener('load', () => {
     });
   });
 
-  // Restore lockout dari localStorage saat halaman dibuka
   const savedLock = getData('_pin_lock_until', 0);
   if (savedLock && Date.now() < savedLock) {
     lockUntil   = savedLock;
@@ -159,15 +141,10 @@ window.addEventListener('load', () => {
     showPinStatus(`🔒 Terkunci ${mnt > 0 ? mnt + 'm ' : ''}${dtk}d lagi`, 'error');
   }
 
-  // Keyboard support untuk PIN screen
   document.addEventListener('keydown', function(e) {
-    // Hanya proses jika pin-screen sedang tampil
     const pinScreen = document.getElementById('pin-screen');
     if (!pinScreen || pinScreen.style.display === 'none') return;
-
-    // Abaikan jika user sedang di input field lain
     if (document.activeElement && ['INPUT','TEXTAREA'].includes(document.activeElement.tagName)) return;
-
     if (e.key >= '0' && e.key <= '9') {
       pinInput(e.key);
     } else if (e.key === 'Backspace' || e.key === 'Delete') {
@@ -256,7 +233,6 @@ function checkPin() {
   }
 }
 
-// Paksa ganti PIN jika masih default
 function checkDefaultPin() {
   const saved        = getData('pin', '1234');
   const sudahDiganti = getData('_pin_sudah_diganti', false);
@@ -320,11 +296,9 @@ function saveForcedPin() {
   toast('✓ PIN berhasil diubah! Harap ingat PIN baru Anda.', 'success');
 }
 
-// FIX: lockApp() menggunakan showScreen() — tidak ada lagi konflik display
 function lockApp() {
   window._pinPassed = false;
 
-  // Hentikan Firebase realtime listener saat layar dikunci
   if (window.FB && window.FB.listeners && window._fbOff) {
     try {
       Object.values(window.FB.listeners).forEach(r => window._fbOff.off(r));
@@ -332,7 +306,6 @@ function lockApp() {
     } catch(e) { console.warn('lockApp: gagal hentikan listener', e); }
   }
 
-  // Bersihkan input sensitif sebelum kunci (cart dipertahankan)
   ['uang-bayar','kasir-name'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
@@ -343,7 +316,7 @@ function lockApp() {
   currentPin = '';
   updatePinDots();
   showPinStatus('Masukkan PIN');
-  showScreen('pin'); // FIX: pakai helper terpusat
+  showScreen('pin');
 }
 
 function gantiPIN() {
@@ -379,6 +352,7 @@ function resetPinPrompt() {
 }
 
 // ===== APP INIT =====
+// FIX: retry loop agar tidak race condition dengan firebase.js ES module
 function initApp() {
   loadSettings();
   renderDashboard();
@@ -386,9 +360,40 @@ function initApp() {
   renderLaporan();
   renderRiwayat();
   if (typeof window.injectCloudButton === 'function') window.injectCloudButton();
-  if (window.FB && window.FB.uid && typeof window.fbLoadAllData === 'function') {
-    window.fbLoadAllData().then(() => window.fbListenRealtime());
+
+  // FIX: tunggu window.FB siap sebelum load data & listen realtime
+  // firebase.js adalah ES module sehingga bisa belum selesai saat initApp jalan
+  let _fbRetry = 0;
+  function tryFirebaseLoad() {
+    // Batas retry 10x (3 detik total)
+    if (_fbRetry >= 10) {
+      console.warn('MotoKas: Firebase module tidak siap setelah 3 detik, skip cloud sync.');
+      return;
+    }
+    _fbRetry++;
+
+    // FB module belum dimuat sama sekali → coba lagi
+    if (!window.FB) {
+      setTimeout(tryFirebaseLoad, 300);
+      return;
+    }
+
+    // User belum login → tidak perlu load data cloud
+    if (!window.FB.uid) return;
+
+    // FB siap & user sudah login → load data lalu aktifkan listener
+    if (typeof window.fbLoadAllData === 'function') {
+      window.fbLoadAllData().then(() => {
+        if (typeof window.fbListenRealtime === 'function') {
+          window.fbListenRealtime();
+        }
+      });
+    } else {
+      // fbLoadAllData belum ter-expose → retry
+      setTimeout(tryFirebaseLoad, 300);
+    }
   }
+  tryFirebaseLoad();
 }
 
 // ===== NAVIGATION =====
@@ -639,13 +644,12 @@ function removeCart(i) {
   hitungTotal();
 }
 
-// Hitung diskon — tidak boleh melebihi subtotal
 function hitungDiskon(subtotal) {
   const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
   if (diskonMode === 'pct') {
     return Math.round(subtotal * Math.min(100, Math.max(0, dv)) / 100);
   } else {
-    return Math.min(dv, subtotal); // diskon Rp tidak boleh > subtotal
+    return Math.min(dv, subtotal);
   }
 }
 
@@ -1189,7 +1193,7 @@ async function doLogin() {
   errEl.textContent = 'Memproses...';
   const result = await window.fbLogin(email, password);
   if (result.ok) {
-    showScreen('pin'); // FIX: pakai helper terpusat
+    showScreen('pin');
   } else {
     errEl.textContent = result.error;
   }
@@ -1210,7 +1214,7 @@ async function doRegister() {
     window.pengaturan = s;
     setData('settings', s);
     await window.fbSimpanSemua();
-    showScreen('pin'); // FIX: pakai helper terpusat
+    showScreen('pin');
     document.getElementById('pin-store-name').textContent = nama;
     toast('Akun berhasil dibuat! Selamat datang 🎉', 'success');
   } else {
@@ -1239,7 +1243,7 @@ function logoutAkun() {
   document.getElementById('login-email').value       = '';
   document.getElementById('login-password').value    = '';
   document.getElementById('login-error').textContent = '';
-  showScreen('auth'); // FIX: pakai helper terpusat
+  showScreen('auth');
   toast('Berhasil logout ✓');
 }
 

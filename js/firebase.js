@@ -49,7 +49,6 @@ function clearLocalData() {
   localStorage.removeItem('produk');
   localStorage.removeItem('laporan');
   localStorage.removeItem('riwayat');
-  // Reset window state
   window.produk  = [];
   window.laporan = {};
   window.riwayat = [];
@@ -117,8 +116,10 @@ window.fbLogin = async function(email, password) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
     window.FB.uid    = cred.user.uid;
-    window.FB.email  = cred.user.email;   // ← simpan email
+    window.FB.email  = cred.user.email;
     window.FB.isOnline = true;
+    // Simpan email ke localStorage supaya aktivasi.js bisa baca
+    localStorage.setItem('mk_email', cred.user.email);
     return { ok: true, user: cred.user };
   } catch(e) {
     return { ok: false, error: fbErrMsg(e.code) };
@@ -139,11 +140,12 @@ window.fbLogout = async function() {
   Object.values(window.FB.listeners).forEach(r => off(r));
   window.FB.listeners = {};
 
-  // ✅ BERSIHKAN data akun lama dari localStorage & memory
+  // Bersihkan data akun lama dari localStorage & memory
   clearLocalData();
   localStorage.removeItem('settings');
   localStorage.removeItem('prefs');
   localStorage.removeItem('pin');
+  localStorage.removeItem('mk_email'); // FIX: hapus email saat logout
 
   window.FB.uid      = null;
   window.FB.email    = null;
@@ -159,7 +161,7 @@ window.fbLoadAllData = async function() {
   _isLoadingCloud = true;
   showSyncBadge('syncing');
 
-  // ✅ BERSIHKAN data lama sebelum load data akun baru
+  // Bersihkan data lama sebelum load data akun baru
   clearLocalData();
 
   try {
@@ -352,9 +354,10 @@ onAuthStateChanged(auth, async (user) => {
     window.FB.uid      = user.uid;
     window.FB.email    = user.email;
     window.FB.isOnline = true;
+    // FIX: simpan email ke localStorage supaya aktivasi.js bisa baca meski page refresh
+    localStorage.setItem('mk_email', user.email);
 
-    // ✅ Hanya load data & tampilkan badge jika app sudah aktif (sudah lewat PIN)
-    // Kalau masih di auth/pin screen, simpan uid dulu — data di-load setelah PIN berhasil
+    // Hanya load data & tampilkan badge jika app sudah aktif (sudah lewat PIN)
     if (isAppActive()) {
       showSyncBadge('online');
       await window.fbLoadAllData();
@@ -379,6 +382,13 @@ onAuthStateChanged(auth, async (user) => {
       btn.style.color       = '#818cf8';
     }
   }
+
+  // FIX #1: dispatch event 'firebaseReady' setelah auth state diketahui
+  // Ini memicu aktivasi.js untuk diload (dari index.html)
+  if (!window._firebaseReadyDispatched) {
+    window._firebaseReadyDispatched = true;
+    window.dispatchEvent(new Event('firebaseReady'));
+  }
 });
 
 /* ── REGISTER ── */
@@ -388,6 +398,8 @@ window.fbRegister = async function(email, password) {
     window.FB.uid   = cred.user.uid;
     window.FB.email = cred.user.email;
     window.FB.isOnline = true;
+    // FIX: simpan email saat register juga
+    localStorage.setItem('mk_email', cred.user.email);
     return { ok: true, user: cred.user };
   } catch(e) {
     return { ok: false, error: fbErrMsg(e.code) };

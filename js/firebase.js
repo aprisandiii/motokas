@@ -1,6 +1,6 @@
 /* ══════════════════════════════════════════
-   dityaMotor 88 — Firebase Integration v2
-   firebase.js — Fixed  Realtime Sync
+   MotoKas — Firebase Integration v2
+   firebase.js — Fixed & Synced
 ══════════════════════════════════════════ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -29,11 +29,14 @@ let _isLoadingCloud = false;
 let _lastSavedHash  = '';
 
 function dataHash() {
-  return JSON.stringify({
-    produk: window.produk || [],
-    laporan: window.laporan || {},
-    riwayat: window.riwayat || []
-  });
+  const laporan = window.laporan || {};
+  const d = {
+    p: (window.produk  || []).length,
+    l: Object.keys(laporan).length,
+    r: (window.riwayat || []).length,
+    t: Object.values(laporan).reduce((s, i) => s + (i.omzet || 0), 0)
+  };
+  return JSON.stringify(d);
 }
 
 function tokoRef(path) {
@@ -52,15 +55,9 @@ function clearLocalData() {
 }
 
 /* ── HELPER: panggil fungsi sync yang aman ── */
-function syncProduk() {
-  if (typeof window.syncProdukDariFirebase === 'function') window.syncProdukDariFirebase();
-}
-function syncLaporan() {
-  if (typeof window.syncLaporanDariFirebase === 'function') window.syncLaporanDariFirebase();
-}
-function syncRiwayat() {
-  if (typeof window.syncRiwayatDariFirebase === 'function') window.syncRiwayatDariFirebase();
-}
+function syncProduk()  { if (typeof window.syncProdukDariFirebase  === 'function') window.syncProdukDariFirebase(); }
+function syncLaporan() { if (typeof window.syncLaporanDariFirebase === 'function') window.syncLaporanDariFirebase(); }
+function syncRiwayat() { if (typeof window.syncRiwayatDariFirebase === 'function') window.syncRiwayatDariFirebase(); }
 
 /* ── SYNC BADGE ── */
 let _badgeTimeout;
@@ -76,11 +73,11 @@ function showSyncBadge(status) {
     document.body.appendChild(badge);
   }
   const cfg = {
-    online:  { bg:'#22c55e', color:'#fff', icon:'☁️',  text:'Online' },
-    offline: { bg:'#4b5563', color:'#ccc', icon:'📴',  text:'Offline' },
-    syncing: { bg:'#f5c542', color:'#111', icon:'⏳',  text:'Menyimpan...' },
-    synced:  { bg:'#22c55e', color:'#fff', icon:'✅',  text:'Tersinkron' },
-    error:   { bg:'#ef4444', color:'#fff', icon:'⚠️', text:'Error sync' },
+    online:  { bg: '#22c55e', color: '#fff', icon: '☁️',  text: 'Online' },
+    offline: { bg: '#4b5563', color: '#ccc', icon: '📴',  text: 'Offline' },
+    syncing: { bg: '#f5c542', color: '#111', icon: '⏳',  text: 'Menyimpan...' },
+    synced:  { bg: '#22c55e', color: '#fff', icon: '✅',  text: 'Tersinkron' },
+    error:   { bg: '#ef4444', color: '#fff', icon: '⚠️', text: 'Error sync' },
   };
   const c = cfg[status] || cfg.offline;
   badge.style.background = c.bg;
@@ -112,10 +109,10 @@ function fbErrMsg(code) {
 window.fbLogin = async function(email, password) {
   try {
     const cred = await signInWithEmailAndPassword(auth, email, password);
-    window.FB.uid    = cred.user.uid;
-    window.FB.email  = cred.user.email;
+    window.FB.uid      = cred.user.uid;
+    window.FB.email    = cred.user.email;
     window.FB.isOnline = true;
-    // Simpan email ke localStorage supaya aktivasi.js bisa baca
+    // Simpan email ke localStorage agar aktivasi.js bisa baca
     localStorage.setItem('mk_email', cred.user.email);
     return { ok: true, user: cred.user };
   } catch(e) {
@@ -142,11 +139,12 @@ window.fbLogout = async function() {
   localStorage.removeItem('settings');
   localStorage.removeItem('prefs');
   localStorage.removeItem('pin');
-  localStorage.removeItem('mk_email'); // FIX: hapus email saat logout
+  localStorage.removeItem('mk_email');
 
   window.FB.uid      = null;
   window.FB.email    = null;
   window.FB.isOnline = false;
+  window._pinPassed  = false;
   _lastSavedHash     = '';
   showSyncBadge('offline');
   await signOut(auth);
@@ -165,8 +163,8 @@ window.fbLoadAllData = async function() {
     const snap = await get(tokoRef('data'));
     if (snap.exists()) {
       const data = snap.val();
-      if (data.produk)  {
-        window.produk  = data.produk;
+      if (data.produk) {
+        window.produk = data.produk;
         localStorage.setItem('produk', JSON.stringify(data.produk));
         syncProduk();
       }
@@ -219,8 +217,8 @@ window.fbListenRealtime = function() {
     if (_isSaving || _isLoadingCloud) return;
     if (!snap.exists()) return;
 
-    const data = snap.val();
-    let berubah = false;
+    const data    = snap.val();
+    let berubah   = false;
 
     if (data.produk && JSON.stringify(data.produk) !== JSON.stringify(window.produk)) {
       window.produk = data.produk;
@@ -290,7 +288,7 @@ window.fbSimpanSemua = async function() {
 /* ── MODAL LOGIN CLOUD ── */
 window.bukaLoginFirebase = function() {
   if (!window.Swal) {
-    alert('Library Swal belum dimuat.');
+    alert('Library SweetAlert2 belum dimuat. Pastikan koneksi internet aktif.');
     return;
   }
 
@@ -298,7 +296,7 @@ window.bukaLoginFirebase = function() {
     Swal.fire({
       title: '☁️ Keluar dari Cloud?',
       html: `<p style="color:#8892a4;font-size:13px">Realtime sync akan berhenti.<br>Data lokal tetap aman.</p>`,
-      icon: 'question', background:'#171b24', color:'#e8eaf0',
+      icon: 'question', background: '#171b24', color: '#e8eaf0',
       showCancelButton: true, confirmButtonText: 'Ya, Keluar',
       confirmButtonColor: '#ef4444', cancelButtonText: 'Batal'
     }).then(r => { if (r.isConfirmed) window.fbLogout(); });
@@ -316,7 +314,7 @@ window.bukaLoginFirebase = function() {
       <input type="password" id="fb-password" class="swal2-input"
         placeholder="Password" autocomplete="current-password">
     `,
-    background:'#171b24', color:'#e8eaf0',
+    background: '#171b24', color: '#e8eaf0',
     confirmButtonText: '🔑 Login', confirmButtonColor: '#f5c542',
     showCancelButton: true, cancelButtonText: 'Batal',
     preConfirm: async () => {
@@ -338,10 +336,9 @@ window.bukaLoginFirebase = function() {
   });
 };
 
-/* ── HELPER: cek apakah app sudah melewati PIN (sudah di dalam app) ── */
+/* ── FIX: isAppActive diganti cek flag _pinPassed yang eksplisit ── */
 function isAppActive() {
-  const app = document.getElementById('app');
-  return app && app.style.display !== 'none' && app.style.display !== '';
+  return window._pinPassed === true;
 }
 
 /* ── AUTO AUTH STATE ── */
@@ -351,10 +348,10 @@ onAuthStateChanged(auth, async (user) => {
     window.FB.uid      = user.uid;
     window.FB.email    = user.email;
     window.FB.isOnline = true;
-    // FIX: simpan email ke localStorage supaya aktivasi.js bisa baca meski page refresh
+    // Simpan email agar aktivasi.js bisa baca meski setelah reload
     localStorage.setItem('mk_email', user.email);
 
-    // Hanya load data & tampilkan badge jika app sudah aktif (sudah lewat PIN)
+    // Hanya load data & tampilkan badge jika PIN sudah berhasil
     if (isAppActive()) {
       showSyncBadge('online');
       await window.fbLoadAllData();
@@ -379,23 +376,15 @@ onAuthStateChanged(auth, async (user) => {
       btn.style.color       = '#818cf8';
     }
   }
-
-  // FIX #1: dispatch event 'firebaseReady' setelah auth state diketahui
-  // Ini memicu aktivasi.js untuk diload (dari index.html)
-  if (!window._firebaseReadyDispatched) {
-    window._firebaseReadyDispatched = true;
-    window.dispatchEvent(new Event('firebaseReady'));
-  }
 });
 
 /* ── REGISTER ── */
 window.fbRegister = async function(email, password) {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, password);
-    window.FB.uid   = cred.user.uid;
-    window.FB.email = cred.user.email;
+    window.FB.uid      = cred.user.uid;
+    window.FB.email    = cred.user.email;
     window.FB.isOnline = true;
-    // FIX: simpan email saat register juga
     localStorage.setItem('mk_email', cred.user.email);
     return { ok: true, user: cred.user };
   } catch(e) {
@@ -403,13 +392,23 @@ window.fbRegister = async function(email, password) {
   }
 };
 
-/* ── INJECT TOMBOL CLOUD ── */
+/* ── INJECT TOMBOL CLOUD ──
+   FIX: Hanya satu definisi injectCloudButton — di sini saja.
+   aktivasi.js sudah dihapus definisi window.injectCloudButton-nya.
+   Tombol ini juga mengecek tier sebelum aksi. ── */
 window.injectCloudButton = function() {
   const topbarActions = document.querySelector('.header-actions');
   if (topbarActions && !document.getElementById('btnCloudLogin')) {
-    const btn = document.createElement('button');
+    const btn     = document.createElement('button');
     btn.id        = 'btnCloudLogin';
-    btn.onclick   = window.bukaLoginFirebase;
+    btn.onclick   = () => {
+      // Cek tier jika user belum login Firebase (pakai akun lokal saja)
+      if (!window.FB.uid && typeof window.canUseCloudSync === 'function' && !window.canUseCloudSync()) {
+        if (typeof window.showUpgradePopup === 'function') window.showUpgradePopup('cloudSync');
+        return;
+      }
+      window.bukaLoginFirebase();
+    };
     btn.innerHTML = `☁️ <span class="btn-label">Cloud</span>`;
     btn.style.cssText = `background:rgba(99,102,241,0.15);border:1px solid rgba(99,102,241,0.4);
       color:#818cf8;padding:6px 12px;border-radius:8px;font-size:12px;cursor:pointer;`;

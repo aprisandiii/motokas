@@ -35,11 +35,13 @@
       <input class="auth-input" id="login-password" type="password" placeholder="Password" autocomplete="current-password">
       <div class="auth-error" id="login-error"></div>
       <button class="auth-btn" onclick="doLogin()">🔑 Masuk</button>
+      <!-- FIX #2: pindah ke dalam auth-wrap, tepat di bawah form login -->
+      <p class="auth-hint">
+        Lupa password?
+        <span onclick="lupaPassword()">Kirim email reset</span>
+      </p>
     </div>
-  <p class="auth-hint">
-  Lupa password? 
-  <span onclick="lupaPassword()">Kirim email reset</span>
-  </p>
+
     <!-- Form Register -->
     <div id="form-register" style="display:none">
       <input class="auth-input" id="reg-nama" type="text" placeholder="Nama Toko" autocomplete="off">
@@ -499,10 +501,23 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.8/sweetalert2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="js/app.js"></script>
-<script type="module" src="js/firebase.js"></script>
 
-<!-- ✅ TAMBAHAN: Sistem Aktivasi MotoKas -->
-<script src="js/aktivasi.js"></script>
+<!-- FIX #1: firebase.js (module) duluan, aktivasi.js tunggu event firebaseReady -->
+<script type="module" src="js/firebase.js"></script>
+<script>
+  // FIX #1: aktivasi.js diload setelah Firebase siap via event 'firebaseReady'
+  // Jika Firebase tidak dispatch event dalam 3 detik, tetap load aktivasi
+  let _aktivasiLoaded = false;
+  function _loadAktivasi() {
+    if (_aktivasiLoaded) return;
+    _aktivasiLoaded = true;
+    const s = document.createElement('script');
+    s.src = 'js/aktivasi.js';
+    document.body.appendChild(s);
+  }
+  window.addEventListener('firebaseReady', _loadAktivasi);
+  setTimeout(_loadAktivasi, 3000); // fallback jika event tidak datang
+</script>
 
 <script>
   if ('serviceWorker' in navigator) {

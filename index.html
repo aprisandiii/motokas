@@ -519,7 +519,9 @@
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js?v=' + Date.now())
+      // FIX: jangan pakai Date.now() — menyebabkan SW re-register setiap buka halaman
+      // yang membatalkan caching PWA offline. Ganti versi manual saat ada update SW.
+      navigator.serviceWorker.register('./sw.js?v=4.0')
         .then(reg => reg.update())
         .catch(err => console.warn('SW error:', err));
     });

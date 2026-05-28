@@ -58,17 +58,17 @@ window.resetCartState = function() {
 
 window.syncProdukDariFirebase = function() {
   const produk = window.produk || [];
-  if (produk.length) localStorage.setItem('produk', JSON.stringify(produk));
+  localStorage.setItem('produk', JSON.stringify(produk));
   renderProduk();
 };
 window.syncLaporanDariFirebase = function() {
   const laporan = window.laporan || {};
-  if (Object.keys(laporan).length) localStorage.setItem('laporan', JSON.stringify(laporan));
+  localStorage.setItem('laporan', JSON.stringify(laporan));
   renderLaporan(); renderRiwayat();
 };
 window.syncRiwayatDariFirebase = function() {
   const riwayat = window.riwayat || [];
-  if (riwayat.length) localStorage.setItem('riwayat', JSON.stringify(riwayat));
+  localStorage.setItem('riwayat', JSON.stringify(riwayat));
   renderRiwayat();
 };
 window.updateDashboard = function() { renderDashboard(); };
@@ -359,6 +359,9 @@ function resetPinPrompt() {
 
 // ===== APP INIT =====
 function initApp() {
+  window.produk  = [];
+  window.laporan = {};
+  window.riwayat = [];
   loadSettings();
   renderDashboard();
   renderProduk();
@@ -1233,6 +1236,15 @@ function logoutAkun() {
   if (!confirm('Yakin ingin logout dari akun?')) return;
   window._pinPassed = false;
   if (window.FB && typeof window.fbLogout === 'function') window.fbLogout();
+  ['produk', 'laporan', 'riwayat', 'settings', 'prefs',
+   'pin', '_pin_sudah_diganti', '_pin_attempts', '_pin_lock_until'].forEach(k => {
+    localStorage.removeItem(k);
+  });
+
+  window.produk     = [];
+  window.laporan    = {};
+  window.riwayat    = [];
+  window.pengaturan = {};
 
   cart          = [];
   diskonMode    = 'rp';

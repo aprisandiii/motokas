@@ -23,6 +23,9 @@ const rtdb = getDatabase(app);
 
 window.FB = { auth, rtdb, uid: null, email: null, isOnline: false, listeners: {} };
 
+/* ── EXPOSE off() agar script non-module bisa stop listener manual ── */
+window._fbOff = { off };
+
 /* ── INTERNAL FLAGS ── */
 let _isSaving       = false;
 let _isLoadingCloud = false;
@@ -146,6 +149,12 @@ window.fbLogout = async function() {
   window.FB.isOnline = false;
   window._pinPassed  = false;
   _lastSavedHash     = '';
+
+  // Reset cart & state kasir via app.js agar tidak bocor antar akun
+  // logoutAkun() di app.js sudah handle ini, tapi fbLogout bisa dipanggil
+  // langsung dari modal cloud — pastikan state bersih di kedua jalur
+  if (typeof window.resetCartState === 'function') window.resetCartState();
+
   showSyncBadge('offline');
   await signOut(auth);
 };
@@ -415,15 +424,6 @@ window.injectCloudButton = function() {
     topbarActions.insertBefore(btn, topbarActions.lastElementChild);
   }
 
-  const ori = window.simpanData;
-  if (typeof ori === 'function' && !ori._patched) {
-    window.simpanData = function() {
-      ori.apply(this, arguments);
-      clearTimeout(window._fbSaveTimeout);
-      window._fbSaveTimeout = setTimeout(() => {
-        if (window.FB.uid) window.fbSimpanSemua();
-      }, 800);
-    };
-    window.simpanData._patched = true;
-  }
+  // Catatan: patch window.simpanData dihapus karena fungsi tersebut
+  // tidak pernah didefinisikan di app.js — kode mati, tidak perlu ada.
 };

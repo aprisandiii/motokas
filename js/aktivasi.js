@@ -106,7 +106,12 @@ function isBasic()       { return getTier() === TIER.BASIC || isPro(); }
 // ── CEK BATAS PRODUK ──────────────────────────────────────────
 function canAddProduk() {
   const cfg    = getTierConfig();
-  const jumlah = (getData('produk', [])).length;
+  // FIX: gunakan window.getData (di-expose app.js) dengan fallback langsung
+  // localStorage agar tidak crash jika dipanggil sebelum app.js siap
+  const _get   = window.getData || function(k, d) {
+    try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; }
+  };
+  const jumlah = (_get('produk', [])).length;
   return jumlah < cfg.maxProduk;
 }
 
@@ -456,12 +461,22 @@ if (document.readyState === 'loading') {
 }
 
 // ── PANEL ADMIN — GENERATOR KODE ─────────────────────────────
-window.generateKodeAdmin = function(tier, email) {
-  if (!['basic','pro'].includes(tier)) { console.error('tier harus "basic" atau "pro"'); return; }
-  const kode = generateKode(tier, email);
-  console.log(`%c🔑 Kode Aktivasi MotoKas`, 'font-size:16px;font-weight:bold;color:#f5c542');
-  console.log(`%cTier  : ${tier.toUpperCase()}`, 'color:#4caf7d');
-  console.log(`%cEmail : ${email}`, 'color:#aaa');
-  console.log(`%cKode  : ${kode}`, 'font-size:18px;font-weight:bold;color:#f5c542;letter-spacing:2px');
-  return kode;
-};
+// KEAMANAN: hanya aktif di mode development (localhost / 127.0.0.1)
+// Di produksi fungsi ini tidak tersedia sehingga tidak bisa di-abuse
+// via DevTools oleh pengguna umum.
+(function() {
+  const isDev = ['localhost','127.0.0.1'].includes(location.hostname)
+    || location.hostname.endsWith('.local');
+  if (!isDev) return; // tidak expose di produksi
+
+  window.generateKodeAdmin = function(tier, email) {
+    if (!['basic','pro'].includes(tier)) { console.error('tier harus "basic" atau "pro"'); return; }
+    const kode = generateKode(tier, email);
+    console.log(`%c🔑 Kode Aktivasi MotoKas`, 'font-size:16px;font-weight:bold;color:#f5c542');
+    console.log(`%cTier  : ${tier.toUpperCase()}`, 'color:#4caf7d');
+    console.log(`%cEmail : ${email}`, 'color:#aaa');
+    console.log(`%cKode  : ${kode}`, 'font-size:18px;font-weight:bold;color:#f5c542;letter-spacing:2px');
+    return kode;
+  };
+  console.info('%c[MotoKas Dev] generateKodeAdmin tersedia di konsol ini.', 'color:#f5c542');
+})();

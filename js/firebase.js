@@ -38,7 +38,7 @@ function dataHash() {
   return JSON.stringify({
     p: window.produk          || [],
     l: window.laporan         || {},
-    r: (window.riwayat || []).slice(0, 20), // 20 riwayat terbaru sudah cukup mewakili perubahan
+    r: (window.riwayat || []).slice(0, 20),
     s: window.pengaturan      || {},
   });
 }
@@ -300,6 +300,12 @@ window.fbSimpanSemua = async function() {
   } finally {
     setTimeout(() => { _isSaving = false; }, 1000);
   }
+};
+   window.fbForceSave = async function() {
+  _isSaving       = false;
+  _isLoadingCloud = false;
+  _lastSavedHash  = '';
+  await window.fbSimpanSemua();
 };
 
 /* ── MODAL LOGIN CLOUD ── */

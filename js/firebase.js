@@ -39,6 +39,7 @@ function dataHash() {
     p: window.produk          || [],
     l: window.laporan         || {},
     r: (window.riwayat || []).slice(0, 20), // 20 riwayat terbaru sudah cukup mewakili perubahan
+    s: window.pengaturan      || {},
   });
 }
 

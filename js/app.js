@@ -83,7 +83,7 @@ window.addEventListener('load', () => {
     });
   });
 
-  // ── BUGFIX #3 & #4: restore lockout dari localStorage saat halaman dibuka ──
+  // Restore lockout dari localStorage saat halaman dibuka
   const savedLock = getData('_pin_lock_until', 0);
   if (savedLock && Date.now() < savedLock) {
     lockUntil = savedLock;
@@ -100,7 +100,6 @@ function installPWA() {
 function pinInput(d) {
   if (currentPin.length >= 4) return;
 
-  // ── BUGFIX #3: cek lockout dari localStorage (persisten antar refresh) ──
   const savedLock = getData('_pin_lock_until', 0);
   if (savedLock && Date.now() < savedLock) {
     lockUntil = savedLock;
@@ -139,7 +138,6 @@ function checkPin() {
   if (currentPin === saved) {
     showPinStatus('✓ Berhasil', 'success');
 
-    // ── BUGFIX #3: reset counter lockout ──
     pinAttempts = 0;
     setData('_pin_attempts', 0);
     setData('_pin_lock_until', 0);
@@ -148,16 +146,13 @@ function checkPin() {
       document.getElementById('pin-screen').style.display = 'none';
       document.getElementById('app').style.display = 'block';
       initApp();
-
-      // ── BUGFIX #4: cek apakah PIN masih default setelah login berhasil ──
       checkDefaultPin();
     }, 300);
   } else {
     pinAttempts++;
-    setData('_pin_attempts', pinAttempts); // ── BUGFIX #3: simpan ke localStorage ──
+    setData('_pin_attempts', pinAttempts);
 
     if (pinAttempts >= 5) {
-      // ── BUGFIX #3: diperpanjang jadi 5 menit & disimpan ke localStorage ──
       lockUntil = Date.now() + 5 * 60 * 1000;
       setData('_pin_lock_until', lockUntil);
       pinAttempts = 0;
@@ -170,13 +165,12 @@ function checkPin() {
     updatePinDots();
     setTimeout(() => {
       const stillLocked = getData('_pin_lock_until', 0);
-      if (Date.now() < stillLocked) return; // biarkan pesan terkunci
+      if (Date.now() < stillLocked) return;
       showPinStatus('Masukkan PIN');
     }, 1500);
   }
 }
 
-// ── BUGFIX #4: fungsi cek & paksa ganti PIN default ──
 function checkDefaultPin() {
   const saved = getData('pin', '1234');
   const sudahDiganti = getData('_pin_sudah_diganti', false);
@@ -186,7 +180,6 @@ function checkDefaultPin() {
 }
 
 function showForcePinChangeDialog() {
-  // Buat overlay modal paksa ganti PIN
   const existing = document.getElementById('force-pin-overlay');
   if (existing) return;
 
@@ -224,7 +217,6 @@ function showForcePinChangeDialog() {
     </div>`;
   document.body.appendChild(overlay);
 
-  // Filter non-angka
   ['fp-baru','fp-konfirm'].forEach(id => {
     document.getElementById(id).addEventListener('input', function() {
       this.value = this.value.replace(/\D/g,'').slice(0,4);
@@ -265,7 +257,7 @@ function gantiPIN() {
   if (baru.length !== 4 || !/^\d{4}$/.test(baru)) { toast('PIN baru harus 4 digit angka', 'error'); return; }
   if (baru !== konfirm) { toast('Konfirmasi PIN tidak cocok', 'error'); return; }
   setData('pin', baru);
-  setData('_pin_sudah_diganti', true); // ── BUGFIX #4: tandai sudah diganti ──
+  setData('_pin_sudah_diganti', true);
   closeModal('modal-pin');
   toast('PIN berhasil diganti ✓', 'success');
   ['pin-lama', 'pin-baru', 'pin-konfirm'].forEach(id => document.getElementById(id).value = '');
@@ -277,8 +269,8 @@ function resetPinPrompt() {
   const rahasia = s.kode_rahasia || 'MOTOR88';
   if (kode === rahasia) {
     setData('pin', '1234');
-    setData('_pin_sudah_diganti', false); // ── BUGFIX #4: reset flag agar paksa ganti lagi ──
-    setData('_pin_lock_until', 0);        // ── BUGFIX #3: hapus lockout saat reset ──
+    setData('_pin_sudah_diganti', false);
+    setData('_pin_lock_until', 0);
     setData('_pin_attempts', 0);
     showPinStatus('PIN direset ke 1234 ✓', 'success');
   } else {
@@ -331,6 +323,8 @@ function loadSettings() {
   updateSheetsStatus(!!s.sheets_url);
 }
 
+// FIX #3: tambah debounce + toast feedback di saveSettings
+let _saveSettingsTimer = null;
 function saveSettings() {
   const s = {
     nama: document.getElementById('set-nama').value,
@@ -345,6 +339,12 @@ function saveSettings() {
   document.getElementById('hdr-name').textContent = s.nama || 'Nama Toko';
   document.getElementById('hdr-sub').textContent = (s.alamat ? s.alamat + ' — ' : '') + 'v4.0';
   updateSheetsStatus(!!s.sheets_url);
+
+  // FIX #3: toast debounced agar tidak spam setiap karakter
+  clearTimeout(_saveSettingsTimer);
+  _saveSettingsTimer = setTimeout(() => {
+    toast('Pengaturan tersimpan ✓', 'success');
+  }, 800);
 }
 
 function toggleSetting(key, btn) {
@@ -546,13 +546,12 @@ function hitungTotal() {
   const subtotal = cart.reduce((s, c) => s + c.harga * c.qty, 0);
   const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
 
-  // ── BUGFIX #1: validasi diskon tidak boleh melebihi subtotal ──
   let diskon;
   if (diskonMode === 'pct') {
-    const pct = Math.min(100, Math.max(0, dv)); // clamp 0–100%
+    const pct = Math.min(100, Math.max(0, dv));
     diskon = Math.round(subtotal * pct / 100);
   } else {
-    diskon = Math.min(dv, subtotal); // diskon Rp tidak boleh > subtotal
+    diskon = Math.min(dv, subtotal);
   }
 
   const total = Math.max(0, subtotal - diskon);
@@ -583,10 +582,8 @@ function hitungKembalian() {
   if (bayar > 0) {
     row.style.display = 'flex';
     const kembalian = bayar - total;
-    // ── BUGFIX #1: tampilkan nilai asli (bisa negatif) dengan warna merah ──
     document.getElementById('kembalian-val').textContent = fmtRp(Math.abs(kembalian));
     document.getElementById('kembalian-val').style.color = kembalian < 0 ? 'var(--red)' : 'var(--green)';
-    // Tambah label "KURANG" jika negatif
     if (kembalian < 0) {
       document.getElementById('kembalian-val').textContent = '- ' + fmtRp(Math.abs(kembalian)) + ' ⚠️';
     }
@@ -600,7 +597,6 @@ function checkout() {
   const subtotal = cart.reduce((s, c) => s + c.harga * c.qty, 0);
   const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
 
-  // ── BUGFIX #1: pakai logika diskon yang sama seperti hitungTotal() ──
   let diskon;
   if (diskonMode === 'pct') {
     const pct = Math.min(100, Math.max(0, dv));
@@ -613,7 +609,6 @@ function checkout() {
   const kasir = document.getElementById('kasir-name').value || 'Kasir';
   const bayar = parseFloat(document.getElementById('uang-bayar').value) || 0;
 
-  // ── BUGFIX #1: validasi uang bayar untuk semua metode tunai ──
   if (paymentMethod === 'tunai') {
     if (bayar <= 0) { toast('Masukkan jumlah uang bayar', 'error'); return; }
     if (bayar < total) {
@@ -751,7 +746,12 @@ function updateKritisCount() {
   }
 }
 
+// FIX #4: cek ketersediaan Chart.js sebelum render
 function renderChart() {
+  if (typeof Chart === 'undefined') {
+    console.warn('Chart.js belum tersedia (mungkin offline)');
+    return;
+  }
   const laporan = getData('laporan', {});
   const days = [], omzetData = [], labaData = [];
   for (let i = 6; i >= 0; i--) {
@@ -986,7 +986,6 @@ function resetRiwayat() {
   toast('Riwayat dihapus');
 }
 
-// ── BUGFIX #2: resetAllData() pakai modal custom, bukan prompt() browser ──
 function resetAllData() {
   const overlay = document.createElement('div');
   overlay.id = 'reset-confirm-overlay';
@@ -1130,6 +1129,7 @@ async function doRegister() {
     errEl.textContent = result.error;
   }
 }
+
 function logoutAkun() {
   if (!confirm('Yakin ingin logout dari akun?')) return;
   if (window.FB && typeof window.fbLogout === 'function') window.fbLogout();
@@ -1143,6 +1143,7 @@ function logoutAkun() {
   updateCartBadge();
   toast('Berhasil logout ✓');
 }
+
 async function lupaPassword() {
   const email = document.getElementById('login-email').value.trim();
   const errEl = document.getElementById('login-error');

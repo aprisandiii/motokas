@@ -1,12 +1,12 @@
 // ===================================================
-// MotoKas — app.js  (versi perbaikan)
-// Perbaikan:
-//  1. hitungKembalian: tidak lagi parse dari DOM, pakai state _currentTotal
-//  2. cart maxStok di-refresh setiap renderCart dari storage terbaru
-//  3. voidTransaksi: gunakan field waktu string jika trx.id bukan timestamp valid
-//  4. kirimSheets: AbortController timeout 10 detik
-//  5. renderLaporan: data iso kosong TIDAK lolos filter tanggal
-//  6. resetAllData: ikutkan 'prefs' dan '_last_kasir'
+// MotoKas — app.js v4.2
+// Perbaikan dari v4.1:
+//  F1. renderRiwayat: pakai class .is-void bukan inline style opacity
+//  F2. #offline-badge: hapus inline style, pakai CSS class
+//  F3. simpanRestok: riwayat_stok lewat setData() agar sync Firebase
+//  F4. tglKeyFromLocale: pastikan bulan 1-digit di-pad dengan benar
+//  F5. voidTransaksi: fix celah waktu untuk trx dengan id kecil
+//  F6. checkout: snapshot diskonMode agar konsisten
 // ===================================================
 
 // ===== STATE =====
@@ -22,7 +22,6 @@ let lastNota              = '';
 let lastTrx               = null;
 let chartInstance         = null;
 let _checkoutInProgress   = false;
-// FIX #1 — simpan total numerik di state, bukan baca dari DOM
 let _currentTotal         = 0;
 
 // ===== STORAGE =====
@@ -33,11 +32,12 @@ function getData(key, def) {
 
 function setData(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
-  if (key === 'produk')   window.produk     = val;
-  if (key === 'laporan')  window.laporan    = val;
-  if (key === 'riwayat')  window.riwayat    = val;
-  if (key === 'settings') window.pengaturan = val;
-  if (['produk', 'laporan', 'riwayat', 'settings'].includes(key)) {
+  if (key === 'produk')      window.produk       = val;
+  if (key === 'laporan')     window.laporan      = val;
+  if (key === 'riwayat')     window.riwayat      = val;
+  if (key === 'settings')    window.pengaturan   = val;
+  if (key === 'riwayat_stok') window.riwayatStok = val;
+  if (['produk', 'laporan', 'riwayat', 'settings', 'riwayat_stok'].includes(key)) {
     clearTimeout(window._fbSaveTimeout);
     window._fbSaveTimeout = setTimeout(() => {
       if (window.FB && window.FB.uid && typeof window.fbSimpanSemua === 'function') {
@@ -50,11 +50,12 @@ function setData(key, val) {
 window.getData = getData;
 window.setData = setData;
 
-window.produk     = getData('produk',   []);
-window.laporan    = getData('laporan',  {});
-window.riwayat    = getData('riwayat',  []);
-window.pengaturan = getData('settings', {});
-window._pinPassed = false;
+window.produk      = getData('produk',       []);
+window.laporan     = getData('laporan',      {});
+window.riwayat     = getData('riwayat',      []);
+window.pengaturan  = getData('settings',     {});
+window.riwayatStok = getData('riwayat_stok', []);
+window._pinPassed  = false;
 
 // ===== RESET CART STATE =====
 window.resetCartState = function () {
@@ -71,7 +72,6 @@ window.resetCartState = function () {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  // nama kasir TIDAK di-clear — diingat antar transaksi
   const kemRow = document.getElementById('kembalian-row');
   if (kemRow) kemRow.style.display = 'none';
 };
@@ -151,6 +151,48 @@ window.addEventListener('load', () => {
     const sisa  = Math.ceil((savedLock - Date.now()) / 1000);
     showPinStatus(`🔒 Terkunci ${formatSisa(sisa)} lagi`, 'error');
   }
+
+  // P5: background sync — kirim ulang transaksi pending saat online kembali
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.addEventListener('message', e => {
+      if (e.data && e.data.type === 'SYNC_PENDING_TRX') {
+        const pending = getData('_pending_sync', []);
+        if (pending.length > 0 && window.FB && window.FB.uid) {
+          if (typeof window.fbSimpanSemua === 'function') {
+            window.fbSimpanSemua().then(() => {
+              setData('_pending_sync', []);
+              toast('✓ Data offline berhasil disinkronkan', 'success');
+            });
+          }
+        }
+      }
+    });
+  }
+
+  // F2: online/offline indicator — pakai CSS class, bukan inline style
+  function updateOnlineStatus() {
+    const isOnline = navigator.onLine;
+    const existing = document.getElementById('offline-badge');
+    if (!isOnline) {
+      if (!existing) {
+        const badge = document.createElement('div');
+        badge.id = 'offline-badge';
+        // F2: tidak ada inline style — diatur sepenuhnya oleh CSS #offline-badge
+        badge.textContent = '📴 Offline';
+        document.body.appendChild(badge);
+      }
+    } else {
+      if (existing) existing.remove();
+      if ('serviceWorker' in navigator && 'SyncManager' in window) {
+        navigator.serviceWorker.ready.then(sw => {
+          sw.sync.register('sync-transaksi').catch(() => {});
+        });
+      }
+    }
+  }
+  window.addEventListener('online',  updateOnlineStatus);
+  window.addEventListener('offline', updateOnlineStatus);
+  updateOnlineStatus();
 
   document.addEventListener('keydown', e => {
     const pinScreen = document.getElementById('pin-screen');
@@ -359,9 +401,10 @@ function resetPinPrompt() {
 
 // ===== APP INIT =====
 function initApp() {
-  window.produk  = getData('produk',   []);
-  window.laporan = getData('laporan',  {});
-  window.riwayat = getData('riwayat',  []);
+  window.produk      = getData('produk',       []);
+  window.laporan     = getData('laporan',      {});
+  window.riwayat     = getData('riwayat',      []);
+  window.riwayatStok = getData('riwayat_stok', []);
   loadSettings();
   renderDashboard();
   renderProduk();
@@ -415,7 +458,7 @@ function loadSettings() {
   document.getElementById('set-sheets-url').value   = s.sheets_url   || '';
   document.getElementById('set-kode-rahasia').value = s.kode_rahasia || '';
   document.getElementById('hdr-name').textContent   = s.nama         || 'Nama Toko';
-  document.getElementById('hdr-sub').textContent    = (s.alamat ? s.alamat + ' — ' : '') + 'v4.0';
+  document.getElementById('hdr-sub').textContent    = (s.alamat ? s.alamat + ' — ' : '') + 'v4.2';
   document.getElementById('pin-store-name').textContent = s.nama || 'Nama Toko';
   if (s.alamat) document.getElementById('pin-store-addr').textContent = s.alamat;
 
@@ -438,7 +481,7 @@ function saveSettings() {
   };
   setData('settings', s);
   document.getElementById('hdr-name').textContent = s.nama || 'Nama Toko';
-  document.getElementById('hdr-sub').textContent  = (s.alamat ? s.alamat + ' — ' : '') + 'v4.0';
+  document.getElementById('hdr-sub').textContent  = (s.alamat ? s.alamat + ' — ' : '') + 'v4.2';
   updateSheetsStatus(!!s.sheets_url);
   toast('Pengaturan disimpan ✓', 'success');
 }
@@ -578,8 +621,14 @@ function simpanProduk() {
   updateKritisCount();
 }
 
+// P1: hapusProduk dengan cek cart aktif
 function hapusProduk() {
   const id = parseInt(document.getElementById('edit-produk-id').value);
+  const adaDiCart = cart.some(c => c.id === id);
+  if (adaDiCart) {
+    toast('Produk ada di keranjang, hapus dari cart dulu', 'error');
+    return;
+  }
   if (!confirm('Yakin hapus produk ini?')) return;
   setData('produk', getData('produk', []).filter(p => p.id !== id));
   closeModal('modal-tambah-produk');
@@ -635,6 +684,7 @@ function openRestok(id) {
   document.getElementById('restok-qty').focus();
 }
 
+// F3: simpanRestok — riwayat_stok lewat setData() agar ter-sync ke Firebase
 function simpanRestok(id) {
   const qtyEl     = document.getElementById('restok-qty');
   const hppEl     = document.getElementById('restok-hpp');
@@ -654,6 +704,7 @@ function simpanRestok(id) {
   if (hppBaru > 0) produk[idx].hpp = hppBaru;
   setData('produk', produk);
 
+  // F3: pakai setData() bukan localStorage langsung — agar sync Firebase
   const riwayatStok = getData('riwayat_stok', []);
   riwayatStok.unshift({
     id:           Date.now(),
@@ -666,7 +717,7 @@ function simpanRestok(id) {
     catatan,
     waktu:        new Date().toLocaleString('id-ID'),
   });
-  localStorage.setItem('riwayat_stok', JSON.stringify(riwayatStok.slice(0, 200)));
+  setData('riwayat_stok', riwayatStok.slice(0, 200));
 
   document.getElementById('restok-overlay').remove();
   renderProduk();
@@ -682,7 +733,7 @@ function addToCart(id) {
   if (existing) {
     if (existing.qty >= p.stok) { toast('Stok tidak cukup', 'error'); return; }
     existing.qty++;
-    existing.maxStok = p.stok; // FIX #2: selalu refresh maxStok dari storage terbaru
+    existing.maxStok = p.stok;
   } else {
     cart.push({ id, nama: p.nama, harga: p.harga, hpp: p.hpp || 0, qty: 1, maxStok: p.stok });
   }
@@ -709,7 +760,6 @@ function renderCart() {
     return;
   }
 
-  // FIX #2: refresh maxStok dari storage terbaru setiap kali render
   const produkTerbaru = getData('produk', []);
   cart.forEach(c => {
     const p = produkTerbaru.find(x => x.id === c.id);
@@ -748,9 +798,11 @@ function removeCart(i) {
   hitungTotal();
 }
 
-function hitungDiskon(subtotal) {
+function hitungDiskon(subtotal, mode) {
+  // F6: terima mode sebagai parameter agar konsisten saat checkout
   const dv = parseFloat(document.getElementById('diskon-val').value) || 0;
-  if (diskonMode === 'pct') return Math.round(subtotal * Math.min(100, Math.max(0, dv)) / 100);
+  const m  = mode || diskonMode;
+  if (m === 'pct') return Math.round(subtotal * Math.min(100, Math.max(0, dv)) / 100);
   return Math.min(dv, subtotal);
 }
 
@@ -759,7 +811,6 @@ function hitungTotal() {
   const diskon   = hitungDiskon(subtotal);
   const total    = Math.max(0, subtotal - diskon);
 
-  // FIX #1: simpan ke state numerik
   _currentTotal = total;
 
   document.getElementById('co-subtotal').textContent = fmtRp(subtotal);
@@ -789,7 +840,6 @@ function setPayment(btn, method) {
   document.getElementById('tunai-section').style.display = method === 'tunai' ? 'block' : 'none';
 }
 
-// FIX #1: gunakan _currentTotal (state numerik), BUKAN parse DOM
 function hitungKembalian() {
   const total = _currentTotal;
   const bayar = parseFloat(document.getElementById('uang-bayar').value) || 0;
@@ -815,8 +865,11 @@ function checkout() {
   if (_checkoutInProgress) { toast('Sedang memproses...', ''); return; }
   _checkoutInProgress = true;
 
+  // F6: snapshot diskonMode saat tombol checkout ditekan agar konsisten
+  const snapshotDiskonMode = diskonMode;
+
   const subtotal = cart.reduce((s, c) => s + c.harga * c.qty, 0);
-  const diskon   = hitungDiskon(subtotal);
+  const diskon   = hitungDiskon(subtotal, snapshotDiskonMode);
   const total    = Math.max(0, subtotal - diskon);
   const kasir    = document.getElementById('kasir-name').value || 'Kasir';
   const bayar    = parseFloat(document.getElementById('uang-bayar').value) || 0;
@@ -838,7 +891,6 @@ function checkout() {
     }
   }
 
-  // Validasi stok dari storage terbaru
   let produk = getData('produk', []);
   for (const c of cart) {
     const p = produk.find(x => x.id === c.id);
@@ -896,6 +948,13 @@ function checkout() {
   const prefs = getData('prefs', {});
   if (prefs.auto_sheets) kirimSheets(trx);
 
+  // tandai ada transaksi pending untuk background sync
+  if (!navigator.onLine) {
+    const pending = getData('_pending_sync', []);
+    pending.push(trx.id);
+    setData('_pending_sync', pending);
+  }
+
   localStorage.setItem('_last_kasir', kasir);
 
   cart                = [];
@@ -935,15 +994,29 @@ function voidTransaksi(trxId) {
   if (!trx) { toast('Transaksi tidak ditemukan', 'error'); return; }
   if (trx.status === 'void') { toast('Transaksi sudah dibatalkan', 'error'); return; }
 
-  // FIX #3: selisih waktu dihitung dari trx.id jika valid timestamp 13 digit,
-  // fallback ke parse string waktu agar kompatibel dengan data restore/import
+  // F5: selalu gunakan trx.id sebagai timestamp (semua id baru > 1e12)
+  // Untuk id lama yang kecil, parse dari waktu string secara ketat
   let waktuTrx;
   if (trx.id > 1e12) {
-    waktuTrx = trx.id; // trx.id adalah Date.now() saat checkout
+    // id adalah timestamp milidetik — selalu valid
+    waktuTrx = trx.id;
   } else {
-    // coba parse dari string waktu locale
-    const tglParsed = tglKeyFromLocale(trx.waktu);
-    waktuTrx = tglParsed ? new Date(tglParsed).getTime() : Date.now();
+    // id lama: parse dari string waktu; jika gagal, TOLAK void (bukan izinkan)
+    const parsed = tglKeyFromLocale(trx.waktu);
+    if (parsed) {
+      // ambil jam:menit dari string waktu jika tersedia
+      const jamMatch = trx.waktu.match(/(\d{2})\.(\d{2})/);
+      if (jamMatch) {
+        const [, jam, menit] = jamMatch;
+        waktuTrx = new Date(`${parsed}T${jam}:${menit}:00`).getTime();
+      } else {
+        waktuTrx = new Date(parsed).getTime();
+      }
+    } else {
+      // F5: tidak bisa parse waktu → tolak void untuk keamanan
+      toast('Waktu transaksi tidak valid, void tidak bisa dilakukan', 'error');
+      return;
+    }
   }
 
   const selisihJam = (Date.now() - waktuTrx) / (1000 * 3600);
@@ -1033,8 +1106,10 @@ function konfirmasiVoid(trxId) {
   toast('Transaksi berhasil dibatalkan ✓', 'success');
 }
 
+// F4: tglKeyFromLocale — pad bulan dan hari secara konsisten
 function tglKeyFromLocale(waktuStr) {
   try {
+    // Format id-ID: "29/5/2026, 14.30.00" atau "29/05/2026"
     const match = waktuStr.match(/(\d{1,2})[\/\.](\d{1,2})[\/\.](\d{4})/);
     if (match) {
       const [, dd, mm, yyyy] = match;
@@ -1047,6 +1122,7 @@ function tglKeyFromLocale(waktuStr) {
 // ===== NOTA =====
 function generateNota(trx) {
   const s      = getData('settings', {});
+  const prefs  = getData('prefs', { show_laba: false });
   const w      = 32;
   const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
   const line   = '─'.repeat(w);
@@ -1057,12 +1133,20 @@ function generateNota(trx) {
   n += line + '\n';
   n += `Waktu : ${trx.waktu}\nKasir : ${trx.kasir}\nMetode: ${trx.metode.toUpperCase()}\n`;
   n += line + '\n';
-  trx.items.forEach(i => { n += `${i.nama}\n  ${i.qty} × ${fmtRp(i.harga)} = ${fmtRp(i.harga * i.qty)}\n`; });
+  trx.items.forEach(i => {
+    n += `${i.nama}\n  ${i.qty} × ${fmtRp(i.harga)} = ${fmtRp(i.harga * i.qty)}\n`;
+  });
   n += line + '\n';
   n += `Subtotal : ${fmtRp(trx.subtotal)}\n`;
   if (trx.diskon > 0) n += `Diskon   : - ${fmtRp(trx.diskon)}\n`;
   n += `TOTAL    : ${fmtRp(trx.total)}\n`;
-  if (trx.metode === 'tunai') n += `Bayar    : ${fmtRp(trx.bayar)}\nKembali  : ${fmtRp(trx.kembalian)}\n`;
+  if (trx.metode === 'tunai') {
+    n += `Bayar    : ${fmtRp(trx.bayar)}\nKembali  : ${fmtRp(trx.kembalian)}\n`;
+  }
+  if (prefs.show_laba && trx.laba !== undefined) {
+    n += line + '\n';
+    n += `Laba     : ${fmtRp(trx.laba)}\n`;
+  }
   n += line + '\n';
   n += center(s.footer1 || 'Terima kasih telah berbelanja!') + '\n';
   if (s.footer2) n += center(s.footer2) + '\n';
@@ -1122,6 +1206,20 @@ function updateKritisCount() {
 }
 
 function renderChart() {
+  if (typeof Chart === 'undefined') {
+    console.warn('MotoKas: Chart.js belum loaded, skip renderChart');
+    const canvas = document.getElementById('chartOmzet');
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = '#5a5550';
+      ctx.font = '12px sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('Chart tidak tersedia (offline)', canvas.width / 2, 60);
+    }
+    return;
+  }
+
   const laporan = getData('laporan', {});
   const days = [], omzetData = [], labaData = [];
   for (let i = 6; i >= 0; i--) {
@@ -1131,7 +1229,9 @@ function renderChart() {
     omzetData.push(laporan[tgl]?.omzet || 0);
     labaData.push(laporan[tgl]?.laba   || 0);
   }
-  const ctx = document.getElementById('chartOmzet').getContext('2d');
+  const canvas = document.getElementById('chartOmzet');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
   if (chartInstance) chartInstance.destroy();
   chartInstance = new Chart(ctx, {
     type: 'bar',
@@ -1210,13 +1310,12 @@ function renderLaporan() {
         iso     = `${parts[2]}-${parts[1].padStart(2, '0')}-${parts[0].padStart(2, '0')}`;
         display = tgl;
       } else {
-        iso     = null; // FIX #5: null, bukan string kosong
+        iso     = null;
         display = tgl;
       }
     }
     return { tgl: display, iso, ...data };
   }).filter(e => {
-    // FIX #5: data dengan iso null TIDAK lolos filter tanggal (skip, jangan tampilkan)
     if (!e.iso) return false;
     return (!dari || e.iso >= dari) && (!sampai || e.iso <= sampai);
   }).sort((a, b) => b.iso.localeCompare(a.iso));
@@ -1252,6 +1351,7 @@ function resetDateFilter() {
   renderLaporan();
 }
 
+// F1: renderRiwayat — pakai class .is-void bukan inline style opacity
 function renderRiwayat() {
   const riwayat  = getData('riwayat', []);
   const filterPay = document.getElementById('filter-payment').value;
@@ -1274,8 +1374,9 @@ function renderRiwayat() {
                   background:transparent;color:#e74c3c;cursor:pointer;margin-top:6px">
            🚫 Void
          </button>` : '';
+    // F1: pakai class .is-void, bukan inline style opacity
     return `
-    <div class="riwayat-item" style="${isVoid ? 'opacity:0.6' : ''}">
+    <div class="riwayat-item${isVoid ? ' is-void' : ''}">
       <div class="riwayat-header">
         <div>
           <div style="font-size:13px;font-weight:600">${r.kasir}${voidBadge}</div>
@@ -1363,7 +1464,6 @@ function downloadFile(name, content, type) {
   a.click();
 }
 
-// FIX #4: kirimSheets dengan AbortController timeout 10 detik
 async function kirimSheets(trxData) {
   const s = getData('settings', {});
   if (!s.sheets_url) { toast('URL Sheets belum diset', 'error'); return; }
@@ -1532,12 +1632,13 @@ function resetAllData() {
   });
   confirmBtn.addEventListener('click', () => {
     overlay.remove();
-    // FIX #6: ikutkan 'prefs' dan '_last_kasir' saat reset semua
-    ['produk', 'laporan', 'riwayat', 'riwayat_stok', 'prefs', '_last_kasir']
+    if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+    ['produk', 'laporan', 'riwayat', 'riwayat_stok', 'prefs', '_last_kasir', '_pending_sync']
       .forEach(k => localStorage.removeItem(k));
-    window.produk  = [];
-    window.laporan = {};
-    window.riwayat = [];
+    window.produk      = [];
+    window.laporan     = {};
+    window.riwayat     = [];
+    window.riwayatStok = [];
     cart                = [];
     _checkoutInProgress = false;
     _currentTotal       = 0;
@@ -1600,18 +1701,19 @@ function logoutAkun() {
   window._pinPassed = false;
   if (window.FB && typeof window.fbLogout === 'function') window.fbLogout();
 
-  // FIX #6: logout bersihkan SEMUA key termasuk prefs & _last_kasir
   [
     'produk', 'laporan', 'riwayat', 'settings', 'prefs',
     'pin', '_pin_sudah_diganti', '_pin_attempts', '_pin_lock_until',
-    '_last_kasir', 'riwayat_stok',
+    '_last_kasir', 'riwayat_stok', '_pending_sync',
   ].forEach(k => localStorage.removeItem(k));
 
-  window.produk     = [];
-  window.laporan    = {};
-  window.riwayat    = [];
-  window.pengaturan = {};
+  window.produk      = [];
+  window.laporan     = {};
+  window.riwayat     = [];
+  window.pengaturan  = {};
+  window.riwayatStok = [];
 
+  // F1 + resetCartState lengkap termasuk renderCart
   cart                = [];
   diskonMode          = 'rp';
   paymentMethod       = 'tunai';
@@ -1621,6 +1723,7 @@ function logoutAkun() {
   _checkoutInProgress = false;
   _currentTotal       = 0;
   updateCartBadge();
+  renderCart(); // pastikan tampilan cart bersih
 
   ['diskon-val', 'uang-bayar', 'kasir-name'].forEach(id => {
     const el = document.getElementById(id);

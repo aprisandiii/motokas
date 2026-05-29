@@ -172,6 +172,7 @@
       <span class="filter-chip"        data-cat="Ban"        onclick="setFilter(this)">Ban</span>
       <span class="filter-chip"        data-cat="Aki"        onclick="setFilter(this)">Aki</span>
       <span class="filter-chip"        data-cat="Lainnya"    onclick="setFilter(this)">Lainnya</span>
+      <span class="filter-chip" data-cat="Jasa Servis" onclick="setFilter(this)">🔧 Jasa</span>
     </div>
     <div class="produk-list" id="produk-list"></div>
     <button class="fab" onclick="document.getElementById('edit-produk-id').value=''; openModal('modal-tambah-produk')">＋</button>
@@ -227,7 +228,7 @@
       </div>
 
       <input type="text" class="input-full" id="kasir-name" placeholder="Nama kasir (opsional)" style="margin-top:8px">
-
+      <input type="text" class="input-full" id="mekanik-name" placeholder="Nama mekanik (untuk jasa servis)" style="margin-top:8px">
       <button class="btn-checkout" id="btn-checkout" onclick="checkout()" disabled>
         ✔ Proses Checkout
       </button>
@@ -406,7 +407,7 @@
       <select class="modal-select" id="prod-cat">
         <option value="">-- Pilih --</option>
         <option>Oli</option><option>Spare Part</option><option>Aksesoris</option>
-        <option>Ban</option><option>Aki</option><option>Lainnya</option>
+        <option>Ban</option><option>Aki</option><option>Lainnya</option><option>Jasa Servis</option>
       </select>
     </div>
     <div class="modal-grid-2">

@@ -1,3 +1,12 @@
+/* ══════════════════════════════════════════
+   MotoKas — style.css v4.2
+   Perubahan dari v4.1:
+   - Hapus duplikat .swal2-container
+   - #offline-badge: CSS murni (inline style di app.js dihapus)
+   - .riwayat-item.is-void: sekarang aktif karena app.js pakai class
+   - Gabungkan style-patch.css ke sini (tidak perlu file terpisah)
+══════════════════════════════════════════ */
+
 :root {
   --bg: #0f0f0f;
   --bg2: #1a1a1a;
@@ -101,6 +110,23 @@ body {
 #toast.show { opacity: 1; }
 #toast.success { border-color: var(--green); color: var(--green); }
 #toast.error { border-color: var(--red); color: var(--red); }
+
+/* ===== OFFLINE BADGE ===== */
+/* F2: dikelola sepenuhnya oleh CSS — app.js tidak lagi pakai inline style */
+#offline-badge {
+  position: fixed;
+  top: 12px;
+  left: 12px;
+  z-index: 9999;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  background: #4b5563;
+  color: #ccc;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+}
 
 /* ===== MAIN APP ===== */
 #app { display: none; min-height: 100vh; }
@@ -270,7 +296,13 @@ body {
   transition: all 0.1s;
 }
 .btn-add-cart:active { transform: scale(0.92); }
-.btn-add-cart.disabled { background: var(--bg4); color: var(--text3); cursor: not-allowed; }
+/* F: disabled lebih jelas dengan opacity */
+.btn-add-cart.disabled {
+  background: var(--bg4);
+  color: var(--text3);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
 .btn-edit-prod {
   width: 34px; height: 34px; border-radius: var(--radius-sm);
   background: var(--bg3); border: 1px solid var(--border2);
@@ -365,6 +397,20 @@ body {
   color: var(--text2); font-size: 13px; cursor: pointer; margin-top: 6px;
 }
 
+/* ── laba-warn: peringatan laba minus di kasir ── */
+#laba-warn {
+  background: rgba(224, 82, 82, 0.08);
+  border: 1px solid rgba(224, 82, 82, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--red);
+  margin-top: 8px;
+  display: none;
+  line-height: 1.5;
+}
+
 /* ===== LAPORAN ===== */
 .date-filter { display: flex; gap: 8px; margin-bottom: 12px; }
 .date-filter input {
@@ -399,18 +445,32 @@ body {
 .laporan-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .laporan-table tr:last-child td { border-bottom: none; }
 .laporan-table tr:hover td { background: var(--bg3); }
+
+/* ── Responsive: sembunyikan kolom laba & terlaris di layar sangat kecil ── */
+@media (max-width: 360px) {
+  .laporan-table th:nth-child(5),
+  .laporan-table td:nth-child(5) { display: none; }
+  .laporan-table th:nth-child(3),
+  .laporan-table td:nth-child(3) { display: none; }
+}
+
 .riwayat-item {
   background: var(--bg2); border: 1px solid var(--border);
   border-radius: var(--radius); padding: 12px 14px; margin-bottom: 8px;
+}
+/* F1: .is-void aktif karena app.js kini menambahkan class ini */
+.riwayat-item.is-void {
+  opacity: 0.55;
+  border-color: rgba(224, 82, 82, 0.2);
 }
 .riwayat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 6px; }
 .riwayat-waktu { font-size: 11px; color: var(--text3); }
 .riwayat-total { font-size: 15px; font-weight: 700; color: var(--accent); }
 .riwayat-detail { font-size: 12px; color: var(--text2); line-height: 1.6; }
 .badge-payment { font-size: 10px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
-.badge-payment.tunai { background: rgba(76,175,125,0.15); color: var(--green); }
-.badge-payment.transfer { background: rgba(91,155,213,0.15); color: var(--blue); }
-.badge-payment.qris { background: rgba(232,130,74,0.15); color: var(--orange); }
+.badge-payment.tunai    { background: rgba(76,175,125,0.15);  color: var(--green); }
+.badge-payment.transfer { background: rgba(91,155,213,0.15);  color: var(--blue); }
+.badge-payment.qris     { background: rgba(232,130,74,0.15);  color: var(--orange); }
 
 /* ===== SETTINGS ===== */
 .settings-section {
@@ -516,176 +576,52 @@ body {
   margin-bottom: 14px;
 }
 
-@media print {
-  body * { visibility: hidden; }
-  .nota-area, .nota-area * { visibility: visible; }
-  .nota-area { position: fixed; top: 0; left: 0; width: 100%; }
-}
-
-/* ── SweetAlert2 Fix ── */
-.swal2-container {
-  z-index: 99999 !important;
-}
-
-/* ── AUTH SCREEN ── */
+/* ===== AUTH SCREEN ===== */
 #auth-screen {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 100vh;
-  background: #0f1117;
-  padding: 20px;
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; background: #0f1117; padding: 20px;
 }
-.auth-wrap {
-  width: 100%;
-  max-width: 360px;
-}
-.auth-logo {
-  text-align: center;
-  margin-bottom: 28px;
-}
-.auth-brand {
-  font-size: 28px;
-  font-weight: 800;
-  color: #f5c542;
-  margin: 10px 0 4px;
-  letter-spacing: 1px;
-}
-.auth-sub {
-  font-size: 12px;
-  color: #5a5550;
-}
+.auth-wrap { width: 100%; max-width: 360px; }
+.auth-logo { text-align: center; margin-bottom: 28px; }
+.auth-brand { font-size: 28px; font-weight: 800; color: #f5c542; margin: 10px 0 4px; letter-spacing: 1px; }
+.auth-sub { font-size: 12px; color: #5a5550; }
 .auth-tabs {
-  display: flex;
-  background: #1e1e1e;
-  border-radius: 10px;
-  padding: 4px;
-  margin-bottom: 20px;
+  display: flex; background: #1e1e1e;
+  border-radius: 10px; padding: 4px; margin-bottom: 20px;
 }
 .auth-tab {
-  flex: 1;
-  padding: 10px;
-  border: none;
-  background: transparent;
-  color: #5a5550;
-  font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s;
+  flex: 1; padding: 10px; border: none; background: transparent;
+  color: #5a5550; font-size: 14px; font-weight: 600;
+  border-radius: 8px; cursor: pointer; transition: all 0.2s;
 }
-.auth-tab.active {
-  background: #f5c542;
-  color: #111;
-}
+.auth-tab.active { background: #f5c542; color: #111; }
 .auth-input {
-  width: 100%;
-  padding: 14px 16px;
-  background: #1e1e1e;
-  border: 1px solid #2e2e2e;
-  border-radius: 10px;
-  color: #e8eaf0;
-  font-size: 14px;
-  margin-bottom: 12px;
-  box-sizing: border-box;
-  outline: none;
-  transition: border 0.2s;
+  width: 100%; padding: 14px 16px;
+  background: #1e1e1e; border: 1px solid #2e2e2e;
+  border-radius: 10px; color: #e8eaf0; font-size: 14px;
+  margin-bottom: 12px; box-sizing: border-box;
+  outline: none; transition: border 0.2s;
 }
-.auth-input:focus {
-  border-color: #f5c542;
-}
+.auth-input:focus { border-color: #f5c542; }
 .auth-btn {
-  width: 100%;
-  padding: 14px;
-  background: #f5c542;
-  color: #111;
-  border: none;
-  border-radius: 10px;
-  font-size: 15px;
-  font-weight: 700;
-  cursor: pointer;
-  margin-top: 4px;
-  transition: opacity 0.2s;
+  width: 100%; padding: 14px; background: #f5c542; color: #111;
+  border: none; border-radius: 10px; font-size: 15px; font-weight: 700;
+  cursor: pointer; margin-top: 4px; transition: opacity 0.2s;
 }
 .auth-btn:active { opacity: 0.85; }
-.auth-error {
-  color: #ef4444;
-  font-size: 12px;
-  margin-bottom: 8px;
-  min-height: 16px;
-}
-.auth-version {
-  text-align: center;
-  font-size: 11px;
-  color: #3a3a3a;
-  margin-top: 24px;
-}
-/* ══════════════════════════════════════════
-   MotoKas — style-patch.css
-   Tambahkan snippet ini ke BAGIAN BAWAH style.css
-══════════════════════════════════════════ */
-
-/* ── FIX: laba-warn element (ada di app.js tapi tidak ada di CSS) ── */
-#laba-warn {
-  background: rgba(224, 82, 82, 0.08);
-  border: 1px solid rgba(224, 82, 82, 0.25);
-  border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--red);
-  margin-top: 8px;
-  display: none;
-  line-height: 1.5;
-}
-
-/* ── FIX: auth-hint (ada di HTML tapi tidak ada di CSS) ── */
+.auth-error { color: #ef4444; font-size: 12px; margin-bottom: 8px; min-height: 16px; }
 .auth-hint {
-  text-align: center;
-  font-size: 12px;
-  color: var(--text3);
-  margin-top: 12px;
+  text-align: center; font-size: 12px;
+  color: var(--text3); margin-top: 12px;
 }
 .auth-hint span {
-  color: var(--accent);
-  cursor: pointer;
-  text-decoration: underline;
-  text-decoration-style: dotted;
+  color: var(--accent); cursor: pointer;
+  text-decoration: underline; text-decoration-style: dotted;
   text-underline-offset: 3px;
 }
+.auth-version { text-align: center; font-size: 11px; color: #3a3a3a; margin-top: 24px; }
 
-/* ── FIX: offline badge (ditambahkan oleh app-patch.js P6) ── */
-#offline-badge {
-  position: fixed;
-  top: 12px;
-  left: 12px;
-  z-index: 9999;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 11px;
-  font-weight: 700;
-  background: #4b5563;
-  color: #ccc;
-  pointer-events: none;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-}
-
-/* ── FIX: badge stok habis di produk list (supaya lebih jelas) ── */
-.btn-add-cart.disabled {
-  background: var(--bg4);
-  color: var(--text3);
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-/* ── FIX: SweetAlert2 override yang lebih kompatibel ── */
-/* HAPUS blok .swal2-popup { position: fixed !important ... } yang lama */
-/* Ganti dengan ini: */
-.swal2-container {
-  z-index: 99999 !important;
-}
-
-/* ── TAMBAHAN: animasi loading pada stat cards ── */
+/* ===== ANIMASI ===== */
 .stat-value.loading {
   opacity: 0.4;
   animation: pulse 1s ease-in-out infinite;
@@ -695,20 +631,13 @@ body {
   50%       { opacity: 0.8; }
 }
 
-/* ── TAMBAHAN: void badge lebih jelas ── */
-.riwayat-item.is-void {
-  opacity: 0.55;
-  border-color: rgba(224, 82, 82, 0.2);
+/* ===== PRINT ===== */
+@media print {
+  body * { visibility: hidden; }
+  .nota-area, .nota-area * { visibility: visible; }
+  .nota-area { position: fixed; top: 0; left: 0; width: 100%; }
 }
 
-/* ── TAMBAHAN: responsive table laporan di layar kecil ── */
-@media (max-width: 360px) {
-  .laporan-table th:nth-child(5),
-  .laporan-table td:nth-child(5) {
-    display: none;
-  }
-  .laporan-table th:nth-child(3),
-  .laporan-table td:nth-child(3) {
-    display: none;
-  }
-}
+/* ===== SWEETALERT2 ===== */
+/* Satu deklarasi saja — duplikat dari style-patch dihapus */
+.swal2-container { z-index: 99999 !important; }

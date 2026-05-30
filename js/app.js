@@ -68,7 +68,7 @@ window.resetCartState = function () {
   _checkoutInProgress = false;
   _currentTotal       = 0;
   updateCartBadge();
- ['diskon-val', 'uang-bayar', 'mekanik-name'].forEach(id => {
+ ['diskon-val', 'uang-bayar', 'mekanik-name', 'jasa-nama', 'jasa-harga', 'jasa-mekanik'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -743,6 +743,35 @@ function addToCart(id) {
   toast(`${p.nama} ditambahkan ✓`);
 }
 
+function tambahJasa() {
+  const nama    = document.getElementById('jasa-nama').value.trim();
+  const harga   = parseFloat(document.getElementById('jasa-harga').value) || 0;
+  const mekanik = document.getElementById('jasa-mekanik').value.trim();
+
+  if (!nama)    { toast('Nama jasa wajib diisi', 'error'); return; }
+  if (harga <= 0) { toast('Harga jasa harus diisi', 'error'); return; }
+
+  cart.push({
+    id:      'jasa-' + Date.now(),
+    nama:    nama + (mekanik ? ` (${mekanik})` : ''),
+    harga,
+    hpp:     0,
+    qty:     1,
+    maxStok: 999,
+    isJasa:  true,
+    mekanik,
+  });
+
+  document.getElementById('jasa-nama').value    = '';
+  document.getElementById('jasa-harga').value   = '';
+  document.getElementById('jasa-mekanik').value = '';
+
+  updateCartBadge();
+  renderCart();
+  hitungTotal();
+  toast(`Jasa "${nama}" ditambahkan ✓`);
+}
+
 function updateCartBadge() {
   const total = cart.reduce((s, c) => s + c.qty, 0);
   const badge = document.getElementById('cart-badge');
@@ -903,6 +932,7 @@ function checkout() {
   }
 
   cart.forEach(c => {
+    if (c.isJasa) return; // jasa tidak kurangi stok
     const idx = produk.findIndex(p => p.id === c.id);
     if (idx >= 0) {
       produk[idx].stok    = Math.max(0, produk[idx].stok - c.qty);
@@ -981,6 +1011,7 @@ function cekStokKritisPaskaCheckout(items) {
   const produk = getData('produk', []);
   const kritis = [];
   items.forEach(item => {
+    if (item.isJasa) return; // jasa tidak punya stok
     const p = produk.find(x => x.id === item.id);
     if (p && p.stok <= (p.minstok || 5)) kritis.push(`${p.nama} (sisa ${p.stok})`);
   });

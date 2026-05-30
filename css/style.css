@@ -632,18 +632,25 @@ body {
 }
 
 /* ===== PRINT ===== */
+@page {
+  size: 80mm auto;
+  margin: 0;
+}
+
 @media print {
   * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 80mm; }
   body * { visibility: hidden; }
   .nota-area, .nota-area * { visibility: visible; }
   .nota-area {
-    position: fixed;
+    position: absolute;
     top: 0; left: 0;
-    width: 80mm;
+    width: 76mm;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 12px;
-    font-weight: bold;
-    line-height: 1.8;
+    font-size: 16px;
+    font-weight: 900;
+    line-height: 2;
+    letter-spacing: 0.3px;
     color: #000 !important;
     background: #fff !important;
     white-space: pre-wrap;

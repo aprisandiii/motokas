@@ -1166,10 +1166,6 @@ function generateNota(trx) {
   if (s.alamat) n += center(s.alamat) + '\n';
   if (s.telp)   n += center('Telp: ' + s.telp) + '\n';
   n += line + '\n';
-  n += `Waktu   : ${trx.waktu}\nKasir   : ${trx.kasir}\n`;
-if (trx.mekanik) n += `Mekanik : ${trx.mekanik}\n`;
-n += `Metode  : ${trx.metode.toUpperCase()}\n`;
-  n += line + '\n';
   n += `Waktu  : ${trx.waktu}\n`;
   n += `Kasir  : ${trx.kasir}\n`;
   if (trx.mekanik) n += `Mekanik: ${trx.mekanik}\n`;

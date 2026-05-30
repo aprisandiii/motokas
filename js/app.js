@@ -1188,7 +1188,14 @@ n += `Metode  : ${trx.metode.toUpperCase()}\n`;
   if (s.footer2) n += center(s.footer2) + '\n';
   return n;
 }
-
+function lihatDetailTrx(trxId) {
+  const riwayat = getData('riwayat', []);
+  const trx     = riwayat.find(r => r.id === trxId);
+  if (!trx) { toast('Transaksi tidak ditemukan', 'error'); return; }
+  const nota = generateNota(trx);
+  document.getElementById('nota-content').textContent = nota;
+  openModal('modal-nota');
+}
 function cetakNotaTerakhir() {
   if (!lastNota) { toast('Belum ada transaksi', 'error'); return; }
   openModal('modal-nota');
@@ -1419,7 +1426,7 @@ function renderRiwayat() {
          </button>` : '';
     // F1: pakai class .is-void, bukan inline style opacity
     return `
-    <div class="riwayat-item${isVoid ? ' is-void' : ''}">
+    <div class="riwayat-item${isVoid ? ' is-void' : ''}" onclick="lihatDetailTrx(${r.id})" style="cursor:pointer">
       <div class="riwayat-header">
         <div>
           <div style="font-size:13px;font-weight:600">${r.kasir}${voidBadge}</div>

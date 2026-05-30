@@ -382,28 +382,36 @@
       export    : '📤 Export lengkap tersedia di paket Basic & Pro.',
     };
     const msg = pesan[fitur] || '🔒 Fitur ini memerlukan upgrade paket.';
-
-    if (!global.Swal) {
-      if (confirm(msg + '\n\nBuka WhatsApp untuk beli lisensi?')) beliLisensi();
-      return;
-    }
-    global.Swal.fire({
-  title              : 'Upgrade Diperlukan',
-  html               : `<p style="color:#aaa;font-size:14px">${msg}</p>
-                        <p style="color:#aaa;font-size:13px;margin-top:8px">
-                        Beli kode aktivasi via WhatsApp dan unlock semua fitur!</p>`,
-  icon               : 'warning',
-  background         : '#1a1a1a',
-  color              : '#f0ece6',
-  confirmButtonColor : '#f5c542',
-  confirmButtonText  : '💬 Beli Sekarang',
-  showCancelButton   : true,
-  cancelButtonText   : 'Nanti',
-  cancelButtonColor  : '#333',
-  target             : document.body,
-  backdrop           : true,
-  scrollbarPadding   : false,
-}).then(r => { if (r.isConfirmed) beliLisensi(); });
+    const ov = document.createElement('div');
+    ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);
+      z-index:999999;display:flex;align-items:center;justify-content:center;`;
+    ov.innerHTML = `
+      <div style="background:#1a1a1a;border:1px solid #2e2e2e;border-radius:16px;
+                  padding:24px;max-width:320px;width:90%;text-align:center;
+                  color:#f0ece6;font-family:inherit">
+        <div style="font-size:36px;margin-bottom:12px">⚠️</div>
+        <h3 style="margin:0 0 8px;font-size:16px;color:#f5c542">Upgrade Diperlukan</h3>
+        <p style="font-size:14px;color:#aaa;margin:0 0 8px;line-height:1.5">${msg}</p>
+        <p style="font-size:13px;color:#aaa;margin:0 0 20px;line-height:1.5">
+          Beli kode aktivasi via WhatsApp dan unlock semua fitur!
+        </p>
+        <div style="display:flex;gap:8px">
+          <button id="upg-batal"
+            style="flex:1;padding:10px;border-radius:8px;border:1px solid #333;
+                   background:transparent;color:#aaa;font-size:14px;cursor:pointer">
+            Nanti
+          </button>
+          <button id="upg-beli"
+            style="flex:1;padding:10px;border-radius:8px;border:none;
+                   background:#f5c542;color:#111;font-size:14px;font-weight:700;cursor:pointer">
+            💬 Beli Sekarang
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#upg-batal').onclick = () => ov.remove();
+    ov.querySelector('#upg-beli').onclick  = () => { ov.remove(); beliLisensi(); };
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
   }
 
   // ── GUARD FUNCTIONS ────────────────────────────────────────────────

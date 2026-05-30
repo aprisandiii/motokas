@@ -632,7 +632,7 @@ body {
 }
 
 /* ===== PRINT ===== */
-@@media print {
+@media print {
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body * { visibility: hidden; }
   .nota-area, .nota-area * { visibility: visible; }

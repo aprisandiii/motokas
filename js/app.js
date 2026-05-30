@@ -1190,8 +1190,10 @@ const dash   = '--------------------------------';
     n += `Laba    : ${fmtRp(trx.laba)}\n`;
   }
   n += line + '\n';
-  n += center(s.footer1 || 'Terima kasih!') + '\n';
-  if (s.footer2) n += center(s.footer2) + '\n';
+ n += center(s.footer1 || 'Terima kasih!') + '\n';
+if (s.footer2) {
+  const f2 = s.footer2.length > 32 ? s.footer2.substring(0, 32) : s.footer2;
+  n += center(f2) + '\n';
   return n;
 }
 function lihatDetailTrx(trxId) {

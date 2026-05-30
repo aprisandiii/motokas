@@ -316,16 +316,34 @@ window.bukaLoginFirebase = function() {
   }
 
   if (window.FB.uid) {
-    Swal.fire({
-      title: '☁️ Keluar dari Cloud?',
-      html: `<p style="color:#8892a4;font-size:13px">Realtime sync akan berhenti.<br>Data lokal tetap aman.</p>`,
-      icon: 'question', background: '#171b24', color: '#e8eaf0',
-      showCancelButton: true, confirmButtonText: 'Ya, Keluar',
-      confirmButtonColor: '#ef4444', cancelButtonText: 'Batal',
-      target: document.body,
-      backdrop: true,
-      scrollbarPadding: false,
-    }).then(r => { if (r.isConfirmed) window.fbLogout(); });
+    const ov = document.createElement('div');
+    ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);
+      z-index:999999;display:flex;align-items:center;justify-content:center;`;
+    ov.innerHTML = `
+      <div style="background:#171b24;border:1px solid #2e3748;border-radius:16px;
+                  padding:24px;max-width:320px;width:90%;text-align:center;color:#e8eaf0;font-family:inherit">
+        <div style="font-size:36px;margin-bottom:12px">☁️</div>
+        <h3 style="margin:0 0 8px;font-size:16px">Keluar dari Cloud?</h3>
+        <p style="font-size:13px;color:#8892a4;margin:0 0 20px;line-height:1.5">
+          Realtime sync akan berhenti.<br>Data lokal tetap aman.
+        </p>
+        <div style="display:flex;gap:8px">
+          <button id="ov-batal"
+            style="flex:1;padding:10px;border-radius:8px;border:1px solid #333;
+                   background:transparent;color:#aaa;font-size:14px;cursor:pointer">
+            Batal
+          </button>
+          <button id="ov-keluar"
+            style="flex:1;padding:10px;border-radius:8px;border:none;
+                   background:#ef4444;color:#fff;font-size:14px;font-weight:700;cursor:pointer">
+            Ya, Keluar
+          </button>
+        </div>
+      </div>`;
+    document.body.appendChild(ov);
+    ov.querySelector('#ov-batal').onclick  = () => ov.remove();
+    ov.querySelector('#ov-keluar').onclick = () => { ov.remove(); window.fbLogout(); };
+    ov.addEventListener('click', e => { if (e.target === ov) ov.remove(); });
     return;
   }
 

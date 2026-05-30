@@ -1158,9 +1158,9 @@ function generateNota(trx) {
   const s      = getData('settings', {});
   const prefs  = getData('prefs', { show_laba: false });
   const w      = 42;
-  const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
-  const line   = '='.repeat(w);
-  const dash   = '-'.repeat(w);
+const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
+const line   = '================================';
+const dash   = '--------------------------------';
   let n = '';
   n += center(s.nama  || 'dityaMotor 88') + '\n';
   if (s.alamat) n += center(s.alamat) + '\n';

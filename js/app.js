@@ -1157,7 +1157,7 @@ function tglKeyFromLocale(waktuStr) {
 function generateNota(trx) {
   const s      = getData('settings', {});
   const prefs  = getData('prefs', { show_laba: false });
-  const w      = 32;
+  const w      = 42;
   const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
   const line   = '='.repeat(w);
   const dash   = '-'.repeat(w);
@@ -1172,7 +1172,7 @@ function generateNota(trx) {
   n += `Metode : ${trx.metode.toUpperCase()}\n`;
   n += dash + '\n';
   trx.items.forEach(i => {
-    const namaShort = i.nama.length > 20 ? i.nama.substring(0, 20) + '..' : i.nama;
+    const namaShort = i.nama.length > 30 ? i.nama.substring(0, 30) + '..' : i.nama;
     n += `${namaShort}\n`;
     n += `  ${i.qty} x ${fmtRp(i.harga)}\n`;
     n += `  = ${fmtRp(i.harga * i.qty)}\n`;

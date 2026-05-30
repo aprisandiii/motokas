@@ -664,4 +664,7 @@ body {
 
 /* ===== SWEETALERT2 ===== */
 /* Satu deklarasi saja — duplikat dari style-patch dihapus */
-.swal2-container { z-index: 99999 !important; }
+.swal2-container {
+  z-index: 99999 !important;
+  position: fixed !important;
+}

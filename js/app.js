@@ -1159,7 +1159,8 @@ function generateNota(trx) {
   const prefs  = getData('prefs', { show_laba: false });
   const w      = 32;
   const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
-  const line   = '─'.repeat(w);
+  const line   = '='.repeat(w);
+  const dash   = '-'.repeat(w);
   let n = '';
   n += center(s.nama  || 'dityaMotor 88') + '\n';
   if (s.alamat) n += center(s.alamat) + '\n';
@@ -1169,22 +1170,31 @@ function generateNota(trx) {
 if (trx.mekanik) n += `Mekanik : ${trx.mekanik}\n`;
 n += `Metode  : ${trx.metode.toUpperCase()}\n`;
   n += line + '\n';
+  n += `Waktu  : ${trx.waktu}\n`;
+  n += `Kasir  : ${trx.kasir}\n`;
+  if (trx.mekanik) n += `Mekanik: ${trx.mekanik}\n`;
+  n += `Metode : ${trx.metode.toUpperCase()}\n`;
+  n += dash + '\n';
   trx.items.forEach(i => {
-    n += `${i.nama}\n  ${i.qty} × ${fmtRp(i.harga)} = ${fmtRp(i.harga * i.qty)}\n`;
+    const namaShort = i.nama.length > 20 ? i.nama.substring(0, 20) + '..' : i.nama;
+    n += `${namaShort}\n`;
+    n += `  ${i.qty} x ${fmtRp(i.harga)}\n`;
+    n += `  = ${fmtRp(i.harga * i.qty)}\n`;
   });
-  n += line + '\n';
-  n += `Subtotal : ${fmtRp(trx.subtotal)}\n`;
-  if (trx.diskon > 0) n += `Diskon   : - ${fmtRp(trx.diskon)}\n`;
-  n += `TOTAL    : ${fmtRp(trx.total)}\n`;
+  n += dash + '\n';
+  n += `Subtotal: ${fmtRp(trx.subtotal)}\n`;
+  if (trx.diskon > 0) n += `Diskon  : -${fmtRp(trx.diskon)}\n`;
+  n += `TOTAL   : ${fmtRp(trx.total)}\n`;
   if (trx.metode === 'tunai') {
-    n += `Bayar    : ${fmtRp(trx.bayar)}\nKembali  : ${fmtRp(trx.kembalian)}\n`;
+    n += `Bayar   : ${fmtRp(trx.bayar)}\n`;
+    n += `Kembali : ${fmtRp(trx.kembalian)}\n`;
   }
   if (prefs.show_laba && trx.laba !== undefined) {
-    n += line + '\n';
-    n += `Laba     : ${fmtRp(trx.laba)}\n`;
+    n += dash + '\n';
+    n += `Laba    : ${fmtRp(trx.laba)}\n`;
   }
   n += line + '\n';
-  n += center(s.footer1 || 'Terima kasih telah berbelanja!') + '\n';
+  n += center(s.footer1 || 'Terima kasih!') + '\n';
   if (s.footer2) n += center(s.footer2) + '\n';
   return n;
 }

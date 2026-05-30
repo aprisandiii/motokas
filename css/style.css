@@ -645,17 +645,18 @@ body {
   .nota-area {
     position: absolute;
     top: 0; left: 0;
-    width: 76mm;
+    width: 72mm;
     font-family: 'Courier New', Courier, monospace;
-    font-size: 14px;
-    font-weight: 900;
-    line-height: 2;
-    letter-spacing: 0.3px;
+    font-size: 13px;
+    font-weight: bold;
+    line-height: 1.7;
+    letter-spacing: 0px;
     color: #000 !important;
     background: #fff !important;
-    white-space: pre-wrap;
-    word-break: break-word;
-    padding: 2mm 3mm;
+    white-space: pre;
+    word-break: normal;
+    overflow-wrap: normal;
+    padding: 2mm 4mm;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }

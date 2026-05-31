@@ -1,9 +1,11 @@
 /* ══════════════════════════════════════════
-   MotoKas — Firebase Integration v2
-   firebase.js — Fixed & Synced
+   MotoKas — Firebase Integration v2.1
+   firebase.js — Fixed field names to match Rules
    Fix #1: dataHash pakai isi konten nyata
    Fix #2: fbLoadAllData tidak clearLocalData di awal
    Fix #3: fbLogout tidak hapus data toko lokal
+   Fix #4: field 'pengaturan' → 'settings' agar lolos Firebase Rules
+   Fix #5: hapus field 'statistik' & 'updatedAt' yang tidak ada di Rules
 ══════════════════════════════════════════ */
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
@@ -178,9 +180,7 @@ window.fbLogout = async function() {
 
 /* ── LOAD DATA ── */
 // Fix #2: tidak clearLocalData di awal
-// Data lokal hanya diganti kalau cloud benar-benar punya data.
-// Kalau cloud kosong → upload data lokal yang ada ke cloud.
-// Kalau cloud error  → data lokal tetap aman, tidak dihapus.
+// Fix #4: baca field 'settings' (bukan 'pengaturan') sesuai Rules
 window.fbLoadAllData = async function() {
   if (!window.FB.uid || _isLoadingCloud) return;
   _isLoadingCloud = true;
@@ -205,11 +205,10 @@ window.fbLoadAllData = async function() {
         localStorage.setItem('riwayat', JSON.stringify(data.riwayat));
         syncRiwayat();
       }
-      if (data.statistik) window.statistikProduk = data.statistik;
-      if (data.pengaturan) {
-        window.pengaturan = { ...window.pengaturan, ...data.pengaturan };
+      // Fix #4: baca dari 'settings' bukan 'pengaturan'
+      if (data.settings) {
+        window.pengaturan = { ...window.pengaturan, ...data.settings };
         localStorage.setItem('settings', JSON.stringify(window.pengaturan));
-        // F7: terapkanPengaturan di-alias ke loadSettings di app.js
         if (typeof window.terapkanPengaturan === 'function') window.terapkanPengaturan();
       }
       _lastSavedHash = dataHash();
@@ -236,6 +235,7 @@ window.fbLoadAllData = async function() {
 };
 
 /* ── REALTIME LISTENER ── */
+// Fix #4: baca field 'settings' (bukan 'pengaturan') sesuai Rules
 window.fbListenRealtime = function() {
   if (!window.FB.uid) return;
 
@@ -273,8 +273,9 @@ window.fbListenRealtime = function() {
       syncRiwayat();
       berubah = true;
     }
-    if (data.pengaturan && JSON.stringify(data.pengaturan) !== JSON.stringify(window.pengaturan)) {
-      window.pengaturan = { ...window.pengaturan, ...data.pengaturan };
+    // Fix #4: baca dari 'settings' bukan 'pengaturan'
+    if (data.settings && JSON.stringify(data.settings) !== JSON.stringify(window.pengaturan)) {
+      window.pengaturan = { ...window.pengaturan, ...data.settings };
       localStorage.setItem('settings', JSON.stringify(window.pengaturan));
       if (typeof window.terapkanPengaturan === 'function') window.terapkanPengaturan();
       berubah = true;
@@ -289,6 +290,8 @@ window.fbListenRealtime = function() {
 };
 
 /* ── SIMPAN KE FIREBASE ── */
+// Fix #4: simpan dengan key 'settings' (bukan 'pengaturan') sesuai Rules
+// Fix #5: hapus field 'statistik' & 'updatedAt' — tidak ada di Rules ($other: false)
 window.fbSimpanSemua = async function() {
   if (!window.FB.uid) return;
   if (_isSaving || _isLoadingCloud) return;
@@ -301,12 +304,11 @@ window.fbSimpanSemua = async function() {
 
   try {
     await set(tokoRef('data'), {
-      produk:     window.produk          || [],
-      laporan:    window.laporan         || {},
-      riwayat:    window.riwayat         || [],
-      statistik:  window.statistikProduk || {},
-      pengaturan: window.pengaturan      || {},
-      updatedAt:  Date.now()
+      produk:   window.produk    || [],
+      laporan:  window.laporan   || {},
+      riwayat:  window.riwayat   || [],
+      settings: window.pengaturan || {},   // Fix #4: key 'settings' sesuai Rules
+      // 'statistik' & 'updatedAt' DIHAPUS — Rules punya "$other: false"
     });
     _lastSavedHash = currentHash;
     showSyncBadge('synced');

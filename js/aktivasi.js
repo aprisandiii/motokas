@@ -1,30 +1,26 @@
 // ============================================================
-//  MotoKas — Sistem Aktivasi License v3.0 (FIXED)
+//  MotoKas — Sistem Aktivasi License v3.0
 //  File: js/aktivasi.js
 //
 //  Perbaikan dari v2.1:
 //   1. _SALT tidak bisa diakses dari console (IIFE scope)
-//   2. Race condition patch diatasi dengan retry loop + event
-//   3. canAddProduk() dicek langsung di simpanProduk, bukan
-//      hanya mengandalkan patch agar tidak bisa di-bypass
-//   4. getLicense() curigai manipulasi jika sig hilang tapi
-//      data masih ada → paksa reset ke Starter
-//   5. License punya field expiry (opsional) dan dicek saat
-//      getLicense() dipanggil
-//   6. Semua logic dikurung dalam IIFE agar variabel internal
-//      tidak bocor ke window/global scope
+//   2. Race condition diatasi dengan retry loop + event
+//   3. canAddProduk() dicek langsung di simpanProduk
+//   4. getLicense() curigai manipulasi jika sig hilang tapi data ada
+//   5. License punya field expiry (opsional) dan dicek saat getLicense()
+//   6. Semua logic dikurung dalam IIFE agar tidak bocor ke window/global
 // ============================================================
 
 (function (global) {
   'use strict';
 
   // ── SALT — dikurung dalam IIFE, TIDAK bisa diakses dari console ──
-  // Dibuat dari array charCode agar tidak langsung terbaca sebagai string
   const _SALT = (function () {
-    return [66,105,115,109,105,108,108,97,104,83,97,121,97,65,107,97,110,
-            83,117,107,115,101,115,66,101,114,115,97,109,97,77,111,116,111,
-            75,97,115,35,49]
-      .map(c => String.fromCharCode(c)).join('');
+    return [
+      66,105,115,109,105,108,108,97,104,83,97,121,97,65,107,97,110,
+      83,117,107,115,101,115,66,101,114,115,97,109,97,77,111,116,111,
+      75,97,115,35,49
+    ].map(c => String.fromCharCode(c)).join('');
   })();
 
   // ── TIER ──────────────────────────────────────────────────────────
@@ -75,7 +71,7 @@
     return (h >>> 0).toString(16).toUpperCase().padStart(8, '0');
   }
 
-  // FNV-1a — dipakai untuk integrity check (berbeda algoritma dari _hash)
+  // FNV-1a — dipakai untuk integrity check
   function _fnv1a(str) {
     let h = 0x811c9dc5;
     for (let i = 0; i < str.length; i++) {
@@ -86,7 +82,6 @@
   }
 
   // ── KEY STORAGE ────────────────────────────────────────────────────
-  // Key di-bind ke uid/email agar license tidak bisa dipindah antar akun
   function _licenseKey() {
     const uid = (global.FB && global.FB.uid)
       || localStorage.getItem('mk_email')
@@ -105,7 +100,7 @@
       const raw = localStorage.getItem(_licenseKey());
       const sig = localStorage.getItem(_sigKey());
 
-      // FIX #4a: data ada tapi sig tidak ada → curigai manipulasi, reset
+      // Fix #4a: data ada tapi sig tidak ada → curigai manipulasi, reset
       if (raw && !sig) {
         console.warn('MotoKas: Signature hilang, kemungkinan manipulasi. Reset ke Starter.');
         localStorage.removeItem(_licenseKey());
@@ -114,7 +109,7 @@
 
       if (!raw) return _default;
 
-      // FIX #4b: sig ada tapi tidak cocok → reset
+      // Fix #4b: sig ada tapi tidak cocok → reset
       const expectedSig = _fnv1a(raw + _SALT);
       if (sig !== expectedSig) {
         console.warn('MotoKas: Integrity check gagal. Reset ke Starter.');
@@ -125,12 +120,13 @@
 
       const obj = JSON.parse(raw);
 
-      // FIX #5: cek expiry jika ada
+      // Fix #5: cek expiry jika ada
       if (obj.expiry && Date.now() > obj.expiry) {
         console.warn('MotoKas: License expired. Reset ke Starter.');
         localStorage.removeItem(_licenseKey());
         localStorage.removeItem(_sigKey());
-        toast('⏰ Lisensi Anda telah kadaluarsa. Silakan perpanjang.', 'error');
+        if (typeof global.toast === 'function')
+          global.toast('⏰ Lisensi Anda telah kadaluarsa. Silakan perpanjang.', 'error');
         return _default;
       }
 
@@ -150,12 +146,11 @@
   }
 
   // ── GENERATE KODE (INTERNAL) ────────────────────────────────────────
-  // Tidak di-expose ke window, bahkan di dev sekalipun via cara ini
   function _generateKode(tier, email) {
-    const raw    = tier + '|' + email.toLowerCase().trim() + '|' + _SALT;
-    const h      = _hash(raw);
-    const part1  = h.slice(0, 4);
-    const part2  = h.slice(4, 8);
+    const raw   = tier + '|' + email.toLowerCase().trim() + '|' + _SALT;
+    const h     = _hash(raw);
+    const part1 = h.slice(0, 4);
+    const part2 = h.slice(4, 8);
     const prefix = tier === TIER.PRO ? 'PRO' : 'BSC';
     return `${prefix}-${part1}-${part2}`;
   }
@@ -208,20 +203,32 @@
   // ── AKTIVASI KODE ───────────────────────────────────────────────────
   function aktivasiKode(kode) {
     const email = getEmailLogin();
-    if (!email) { toast('Login dulu untuk aktivasi', 'error'); return false; }
+    if (!email) {
+      if (typeof global.toast === 'function') global.toast('Login dulu untuk aktivasi', 'error');
+      return false;
+    }
     const result = validateKode(kode, email);
-    if (!result.valid) { toast(result.msg, 'error'); return false; }
+    if (!result.valid) {
+      if (typeof global.toast === 'function') global.toast(result.msg, 'error');
+      return false;
+    }
     setLicense({
       tier      : result.tier,
       kode      : kode.trim().toUpperCase(),
       aktifSejak: new Date().toISOString(),
-      expiry    : null, // null = tidak ada expiry; isi Date.now() + ms jika ingin berbatas waktu
+      expiry    : null,
     });
-    toast(`Aktivasi ${result.tier.toUpperCase()} berhasil! 🎉`, 'success');
+    if (typeof global.toast === 'function')
+      global.toast(`Aktivasi ${result.tier.toUpperCase()} berhasil! 🎉`, 'success');
     renderBadgeTier();
     updateAktivasiSettingsLabel();
-    closeModal('modal-aktivasi');
+    closeModalAktivasi();
     return true;
+  }
+
+  function closeModalAktivasi() {
+    const el = document.getElementById('modal-aktivasi');
+    if (el) el.classList.remove('show');
   }
 
   // ── RENDER BADGE TIER DI HEADER ────────────────────────────────────
@@ -257,7 +264,7 @@
 
         <div id="aktivasi-status-card" style="
           border-radius:12px;padding:14px 16px;margin-bottom:16px;
-          background:var(--card);border:1px solid var(--border);">
+          background:var(--bg3);border:1px solid var(--border);">
           <div style="display:flex;align-items:center;gap:10px">
             <div id="akt-tier-emoji" style="font-size:28px"></div>
             <div>
@@ -297,14 +304,15 @@
         </div>
 
         <button class="btn-secondary" style="width:100%;margin-top:10px"
-          onclick="closeModal('modal-aktivasi')">
+          onclick="document.getElementById('modal-aktivasi').classList.remove('show')">
           Tutup
         </button>
       </div>
     </div>`;
     document.body.insertAdjacentHTML('beforeend', html);
     document.getElementById('modal-aktivasi').addEventListener('click', e => {
-      if (e.target.id === 'modal-aktivasi') closeModal('modal-aktivasi');
+      if (e.target.id === 'modal-aktivasi')
+        document.getElementById('modal-aktivasi').classList.remove('show');
     });
   }
 
@@ -340,7 +348,7 @@
     document.getElementById('akt-fitur-list').innerHTML = fiturList.map(f => `
       <div style="display:flex;align-items:center;gap:8px">
         <span style="color:${f.ok ? 'var(--green)' : '#5a5550'}">${f.ok ? '✓' : '✗'}</span>
-        <span style="color:${f.ok ? 'var(--text1)' : 'var(--text3)'}">${f.label}</span>
+        <span style="color:${f.ok ? 'var(--text)'  : 'var(--text3)'}">${f.label}</span>
       </div>`).join('');
 
     document.getElementById('aktivasi-reset-section').style.display =
@@ -349,12 +357,16 @@
     const inputEl = document.getElementById('input-kode-aktivasi');
     if (inputEl) inputEl.value = '';
 
-    openModal('modal-aktivasi');
+    document.getElementById('modal-aktivasi').classList.add('show');
   }
 
   function doAktivasi() {
-    const kode = (document.getElementById('input-kode-aktivasi').value || '').trim();
-    if (!kode) { toast('Masukkan kode aktivasi', 'error'); return; }
+    const inputEl = document.getElementById('input-kode-aktivasi');
+    const kode    = (inputEl ? inputEl.value : '').trim();
+    if (!kode) {
+      if (typeof global.toast === 'function') global.toast('Masukkan kode aktivasi', 'error');
+      return;
+    }
     if (aktivasiKode(kode)) setTimeout(openModalAktivasi, 300);
   }
 
@@ -363,7 +375,7 @@
     setLicense({ tier: TIER.STARTER, kode: null, aktifSejak: null, expiry: null });
     renderBadgeTier();
     updateAktivasiSettingsLabel();
-    toast('Lisensi dihapus, kembali ke Starter');
+    if (typeof global.toast === 'function') global.toast('Lisensi dihapus, kembali ke Starter');
     openModalAktivasi();
   }
 
@@ -382,8 +394,9 @@
       export    : '📤 Export lengkap tersedia di paket Basic & Pro.',
     };
     const msg = pesan[fitur] || '🔒 Fitur ini memerlukan upgrade paket.';
-    const ov = document.createElement('div');
-    ov.style.cssText = `position:fixed;inset:0;background:rgba(0,0,0,0.8);
+    const ov  = document.createElement('div');
+    ov.style.cssText = `
+      position:fixed;inset:0;background:rgba(0,0,0,0.8);
       z-index:999999;display:flex;align-items:center;justify-content:center;`;
     ov.innerHTML = `
       <div style="background:#1a1a1a;border:1px solid #2e2e2e;border-radius:16px;
@@ -415,16 +428,14 @@
   }
 
   // ── GUARD FUNCTIONS ────────────────────────────────────────────────
-  // FIX #3: guard canAddProduk dicek langsung di sini, tidak hanya
-  // mengandalkan patch — sehingga tidak bisa di-bypass jika patch gagal
+  // Fix #3: guard canAddProduk dicek langsung di sini
 
   function guardSimpanProduk() {
-    const editId = parseInt(
-      (document.getElementById('edit-produk-id') || {}).value || '0'
-    ) || 0;
-    // Cek batas produk hanya untuk tambah baru (bukan edit)
+    const editIdEl = document.getElementById('edit-produk-id');
+    const editId   = parseInt((editIdEl || {}).value || '0') || 0;
     if (!editId && !canAddProduk()) {
-      closeModal('modal-tambah-produk');
+      const modalEl = document.getElementById('modal-tambah-produk');
+      if (modalEl) modalEl.classList.remove('show');
       showUpgradePopup('produk');
       return;
     }
@@ -458,8 +469,7 @@
   }
 
   // ── PATCH APP.JS FUNCTIONS ─────────────────────────────────────────
-  // FIX #2: retry loop hingga 30x (9 detik) dengan interval 300ms,
-  // stop sendiri jika semua fungsi sudah tersedia
+  // Fix #2: retry loop hingga 30x (9 detik) dengan interval 300ms
   function patchAppFunctions() {
     if (global._appPatched) return;
 
@@ -473,10 +483,8 @@
 
     let patched = 0;
     targets.forEach(t => {
-      // Sudah di-patch sebelumnya, skip
       if (global[t.oriKey]) { patched++; return; }
       if (typeof global[t.name] !== 'function') return;
-      // Simpan fungsi asli dengan prefix _ agar tidak mudah di-override dari console
       global[t.oriKey] = global[t.name];
       global[t.name]   = t.guard;
       patched++;
@@ -487,8 +495,7 @@
       return;
     }
 
-    // Belum semua terpatch — jadwalkan retry
-    const maxRetry  = 30;
+    const maxRetry   = 30;
     let   retryCount = global._patchRetryCount || 0;
     if (retryCount >= maxRetry) {
       console.warn(`MotoKas: patchAppFunctions gagal setelah ${maxRetry} percobaan.`);
@@ -518,7 +525,7 @@
         </div>
       </div>`;
 
-    // Sisipkan sebelum section "Zona Bahaya" (section-title terakhir)
+    // Sisipkan sebelum section "Zona Berbahaya" (section-title terakhir)
     const allTitles = settingsPage.querySelectorAll('.section-title');
     const lastTitle = allTitles[allTitles.length - 1];
     if (lastTitle) settingsPage.insertBefore(section, lastTitle);
@@ -554,7 +561,6 @@
   }
 
   // ── PUBLIC API ─────────────────────────────────────────────────────
-  // Hanya fungsi yang benar-benar perlu dipanggil dari HTML/luar
   global._motoKasAktivasi = {
     openModalAktivasi,
     doAktivasi,
@@ -575,8 +581,7 @@
   global.isBasic             = isBasic;
 
   // ── PANEL ADMIN — hanya aktif di localhost/dev ─────────────────────
-  // FIX: generateKode TIDAK di-expose ke window bahkan di dev
-  // Akses via: window._motoKasDev.generateKode('pro', 'email@email.com')
+  // generateKode TIDAK di-expose ke window bahkan di dev
   const _isDev = ['localhost', '127.0.0.1'].includes(location.hostname)
     || location.hostname.endsWith('.local');
 

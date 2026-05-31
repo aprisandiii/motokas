@@ -2,11 +2,10 @@
    MotoKas — Service Worker v4.2
    Perbaikan dari v4.1:
    - SW1. CACHE_NAME diupdate ke v4.2
-   - SW2. Tambah riwayat_stok ke daftar key yang di-handle
+   - SW2. riwayat_stok adalah data localStorage, bukan file (tidak perlu di LOCAL_ASSETS)
    - SW3. Firebase external domains lebih lengkap dan eksplisit
-   - SW4. Strategi cache untuk aktivasi.js & firebase.js dipisah
-          (cache-first karena lokal, bukan CDN)
-   - SW5. Tambah versioning hint di response header cache
+   - SW4. Strategi cache untuk aktivasi.js & firebase.js dipisah (cache-first)
+   - SW5. Versioning hint di response header cache
    - SW6. Message CLEAR_CACHE untuk force refresh dari app
 ══════════════════════════════════════════ */
 
@@ -26,15 +25,14 @@ const LOCAL_ASSETS = [
 ];
 
 // Domain eksternal — tidak di-cache, network-only dengan fallback 503
-// SW3: lebih eksplisit — pisahkan subdomain Firebase
 const EXTERNAL_DOMAINS = [
   'firebaseapp.com',
   'firebasedatabase.app',
-  'firebaseio.com',              // SW3: Realtime DB URL lama
-  'googleapis.com',              // mencakup firebase.googleapis.com
+  'firebaseio.com',
+  'googleapis.com',
   'gstatic.com',
-  'identitytoolkit.googleapis.com', // SW3: Firebase Auth endpoint
-  'securetoken.googleapis.com',     // SW3: Firebase token refresh
+  'identitytoolkit.googleapis.com',
+  'securetoken.googleapis.com',
   'jsdelivr.net',
   'cdnjs.cloudflare.com',
   'chart.js',
@@ -45,7 +43,6 @@ const EXTERNAL_DOMAINS = [
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_NAME).then(cache =>
-      // Promise.allSettled: satu gagal tidak batalkan semua
       Promise.allSettled(
         LOCAL_ASSETS.map(url =>
           cache.add(url).catch(err =>
@@ -55,7 +52,6 @@ self.addEventListener('install', e => {
       )
     )
   );
-  // Aktifkan SW baru langsung tanpa tunggu tab lama ditutup
   self.skipWaiting();
 });
 
@@ -73,7 +69,6 @@ self.addEventListener('activate', e => {
       )
     )
   );
-  // Klaim semua tab yang sudah terbuka tanpa perlu reload
   self.clients.claim();
 });
 
@@ -81,16 +76,16 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = e.request.url;
 
-  // Abaikan request non-GET (POST ke Firebase, Sheets, dsb)
+  // Abaikan request non-GET
   if (e.request.method !== 'GET') return;
 
-  // SW3: domain eksternal — network-only, fallback 503 jika offline
+  // Domain eksternal — network-only, fallback 503 jika offline
   const isExternal = EXTERNAL_DOMAINS.some(domain => url.includes(domain));
   if (isExternal) {
     e.respondWith(
       fetch(e.request).catch(() =>
         new Response('', {
-          status: 503,
+          status:     503,
           statusText: 'Service Unavailable — Offline'
         })
       )
@@ -98,7 +93,7 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // SW4: aset lokal yang DIKENAL — cache-first (lebih cepat, tidak butuh network)
+  // Aset lokal yang dikenal — cache-first
   const isKnownLocal = LOCAL_ASSETS.some(asset => {
     const assetUrl = new URL(asset, self.location.origin).href;
     return url === assetUrl || url.endsWith(asset.replace('./', '/'));
@@ -108,7 +103,6 @@ self.addEventListener('fetch', e => {
     e.respondWith(
       caches.match(e.request).then(cached => {
         if (cached) return cached;
-        // Tidak ada di cache (misal setelah hapus cache manual) — ambil dari network
         return fetch(e.request).then(response => {
           if (response && response.status === 200) {
             const clone = response.clone();
@@ -138,12 +132,11 @@ self.addEventListener('fetch', e => {
       .catch(() =>
         caches.match(e.request).then(cached => {
           if (cached) return cached;
-          // Navigasi (buka URL baru) — fallback ke index.html
           if (e.request.mode === 'navigate') {
             return caches.match('./index.html');
           }
           return new Response('', {
-            status: 503,
+            status:     503,
             statusText: 'Offline - Resource not cached'
           });
         })
@@ -151,7 +144,7 @@ self.addEventListener('fetch', e => {
   );
 });
 
-// ── BACKGROUND SYNC: kirim transaksi pending saat online kembali ──
+// ── BACKGROUND SYNC ──
 self.addEventListener('sync', e => {
   if (e.tag === 'sync-transaksi') {
     e.waitUntil(
@@ -168,22 +161,20 @@ self.addEventListener('sync', e => {
   }
 });
 
-// ── MESSAGE: terima perintah dari halaman utama ──
+// ── MESSAGE ──
 self.addEventListener('message', e => {
   if (!e.data) return;
 
-  // Paksa aktivasi SW baru (dipanggil saat user konfirmasi update)
   if (e.data.type === 'SKIP_WAITING') {
     self.skipWaiting();
   }
 
-  // SW6: force clear cache — dipanggil saat app butuh refresh penuh
+  // SW6: force clear cache
   if (e.data.type === 'CLEAR_CACHE') {
     caches.keys().then(keys =>
       Promise.all(keys.map(key => caches.delete(key)))
     ).then(() => {
       console.log('[SW] Semua cache dihapus atas permintaan app');
-      // Kabari client bahwa cache sudah bersih
       self.clients.matchAll().then(clients => {
         clients.forEach(c => c.postMessage({ type: 'CACHE_CLEARED' }));
       });

@@ -5,6 +5,7 @@
    - #offline-badge: CSS murni (inline style di app.js dihapus)
    - .riwayat-item.is-void: sekarang aktif karena app.js pakai class
    - Gabungkan style-patch.css ke sini (tidak perlu file terpisah)
+   - #laba-warn ditambahkan (sebelumnya hilang dari HTML)
 ══════════════════════════════════════════ */
 
 :root {
@@ -210,14 +211,14 @@ body {
   top: 0; left: 0; right: 0; height: 2px;
 }
 .stat-card.omzet::before { background: var(--accent); }
-.stat-card.laba::before { background: var(--green); }
-.stat-card.trx::before { background: var(--blue); }
-.stat-card.kritis::before { background: var(--red); }
+.stat-card.laba::before  { background: var(--green); }
+.stat-card.trx::before   { background: var(--blue); }
+.stat-card.kritis::before{ background: var(--red); }
 .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
 .stat-value { font-size: 20px; font-weight: 700; letter-spacing: -0.5px; }
-.stat-card.omzet .stat-value { color: var(--accent); }
-.stat-card.laba .stat-value { color: var(--green); }
-.stat-card.trx .stat-value { color: var(--blue); }
+.stat-card.omzet .stat-value  { color: var(--accent); }
+.stat-card.laba .stat-value   { color: var(--green); }
+.stat-card.trx .stat-value    { color: var(--blue); }
 .stat-card.kritis .stat-value { color: var(--red); }
 @media(min-width:480px){ .stat-grid { grid-template-columns: repeat(4,1fr); } }
 
@@ -296,7 +297,6 @@ body {
   transition: all 0.1s;
 }
 .btn-add-cart:active { transform: scale(0.92); }
-/* F: disabled lebih jelas dengan opacity */
 .btn-add-cart.disabled {
   background: var(--bg4);
   color: var(--text3);
@@ -663,7 +663,6 @@ body {
 }
 
 /* ===== SWEETALERT2 ===== */
-/* Satu deklarasi saja — duplikat dari style-patch dihapus */
 .swal2-container {
   z-index: 99999 !important;
 }

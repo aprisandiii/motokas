@@ -50,7 +50,7 @@
       <button class="auth-btn" onclick="doRegister()">📝 Daftar Sekarang</button>
     </div>
 
-    <div class="auth-version">MotoKas v4.2 Pro · Build 2025</div>
+    <div class="auth-version">MotoKas v4.2 · Build 2025</div>
   </div>
 </div>
 
@@ -58,7 +58,7 @@
 <div id="pin-screen">
   <div class="pin-logo">
     <div class="pin-icon-wrap">
-      <img src="icons/icon-512.png" alt="MotoKas" style="width:90px;height:90px;border-radius:20px;">
+      <img src="icons/icon-512.png" alt="MotoKas" style="width:48px;height:48px;border-radius:12px;">
     </div>
     <h1 id="pin-store-name">Nama Toko</h1>
     <p id="pin-store-addr">Masukkan PIN untuk membuka kasir</p>
@@ -102,11 +102,11 @@
   <div class="app-header">
     <div class="header-left">
       <div class="header-logo">
-        <img src="icons/icon-512.png" alt="MotoKas" style="width:36px;height:36px;border-radius:8px;">
+        <img src="icons/icon-192.png" alt="MotoKas" style="width:32px;height:32px;border-radius:8px;">
       </div>
       <div>
         <div class="header-title" id="hdr-name">Nama Toko</div>
-        <div class="header-sub"   id="hdr-sub">v4.2 Pro</div>
+        <div class="header-sub"   id="hdr-sub">v4.2</div>
       </div>
     </div>
     <div class="header-actions">
@@ -165,14 +165,14 @@
       <input type="text" id="search-produk" placeholder="Cari produk atau SKU..." oninput="renderProduk()">
     </div>
     <div class="filter-scroll" id="filter-cat">
-      <span class="filter-chip active" data-cat="Semua"      onclick="setFilter(this)">Semua</span>
-      <span class="filter-chip"        data-cat="Oli"        onclick="setFilter(this)">Oli</span>
-      <span class="filter-chip"        data-cat="Spare Part" onclick="setFilter(this)">Spare Part</span>
-      <span class="filter-chip"        data-cat="Aksesoris"  onclick="setFilter(this)">Aksesoris</span>
-      <span class="filter-chip"        data-cat="Ban"        onclick="setFilter(this)">Ban</span>
-      <span class="filter-chip"        data-cat="Aki"        onclick="setFilter(this)">Aki</span>
-      <span class="filter-chip"        data-cat="Lainnya"    onclick="setFilter(this)">Lainnya</span>
-      <span class="filter-chip" data-cat="Jasa Servis" onclick="setFilter(this)">🔧 Jasa</span>
+      <span class="filter-chip active" data-cat="Semua"       onclick="setFilter(this)">Semua</span>
+      <span class="filter-chip"        data-cat="Oli"         onclick="setFilter(this)">Oli</span>
+      <span class="filter-chip"        data-cat="Spare Part"  onclick="setFilter(this)">Spare Part</span>
+      <span class="filter-chip"        data-cat="Aksesoris"   onclick="setFilter(this)">Aksesoris</span>
+      <span class="filter-chip"        data-cat="Ban"         onclick="setFilter(this)">Ban</span>
+      <span class="filter-chip"        data-cat="Aki"         onclick="setFilter(this)">Aki</span>
+      <span class="filter-chip"        data-cat="Lainnya"     onclick="setFilter(this)">Lainnya</span>
+      <span class="filter-chip"        data-cat="Jasa Servis" onclick="setFilter(this)">🔧 Jasa</span>
     </div>
     <div class="produk-list" id="produk-list"></div>
     <button class="fab" onclick="document.getElementById('edit-produk-id').value=''; openModal('modal-tambah-produk')">＋</button>
@@ -180,13 +180,14 @@
 
   <div id="page-kasir" class="page">
     <!-- Section Jasa Servis -->
-<div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
-  <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)">🔧 Tambah Jasa Servis</div>
-  <input type="text" class="input-full" id="jasa-nama" placeholder="Nama jasa (contoh: Ganti Oli Mesin)">
-  <input type="number" class="input-full" id="jasa-harga" placeholder="Harga jasa (Rp)" min="0" style="margin-top:6px">
-  <input type="text" class="input-full" id="jasa-mekanik" placeholder="Nama mekanik" style="margin-top:6px">
-  <button class="btn-primary" style="width:100%;margin-top:8px" onclick="tambahJasa()">＋ Tambah ke Keranjang</button>
-</div>
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)">🔧 Tambah Jasa Servis</div>
+      <input type="text"   class="input-full" id="jasa-nama"    placeholder="Nama jasa (contoh: Ganti Oli Mesin)">
+      <input type="number" class="input-full" id="jasa-harga"   placeholder="Harga jasa (Rp)" min="0" style="margin-top:6px">
+      <input type="text"   class="input-full" id="jasa-mekanik" placeholder="Nama mekanik"    style="margin-top:6px">
+      <button class="btn-primary" style="width:100%;margin-top:8px" onclick="tambahJasa()">＋ Tambah ke Keranjang</button>
+    </div>
+
     <div class="cart-empty" id="cart-empty">
       <div class="empty-icon">🛒</div>
       <p>Keranjang kosong</p>
@@ -220,6 +221,9 @@
         <span id="co-total">Rp 0</span>
       </div>
 
+      <!-- FIX: laba-warn elemen wajib ada di HTML agar app.js bisa mengaksesnya -->
+      <div id="laba-warn"></div>
+
       <div class="payment-label">Metode Pembayaran</div>
       <div class="payment-methods">
         <button class="payment-btn active" onclick="setPayment(this,'tunai')">💵 Tunai</button>
@@ -235,8 +239,9 @@
         </div>
       </div>
 
-      <input type="text" class="input-full" id="kasir-name" placeholder="Nama kasir (opsional)" style="margin-top:8px">
+      <input type="text" class="input-full" id="kasir-name"   placeholder="Nama kasir (opsional)"                   style="margin-top:8px">
       <input type="text" class="input-full" id="mekanik-name" placeholder="Nama mekanik (untuk jasa servis)" style="margin-top:8px">
+
       <button class="btn-checkout" id="btn-checkout" onclick="checkout()" disabled>
         ✔ Proses Checkout
       </button>
@@ -275,6 +280,7 @@
 
     <div class="section-title">🔧 Laporan Per Mekanik (Bulan Ini)</div>
     <div id="laporan-mekanik-list" style="margin-bottom:16px"></div>
+
     <div class="section-title">🧾 Riwayat Transaksi</div>
     <select id="filter-payment" class="modal-select" style="width:100%;margin-bottom:10px;font-size:13px" onchange="renderRiwayat()">
       <option value="">Semua Metode</option>
@@ -292,7 +298,7 @@
     <div class="settings-section">
       <div class="settings-row">
         <div class="settings-label">Nama Toko</div>
-        <input class="settings-input" id="set-nama"   placeholder="Nama toko"  oninput="saveSettings()">
+        <input class="settings-input" id="set-nama"   placeholder="Nama toko"   oninput="saveSettings()">
       </div>
       <div class="settings-row">
         <div class="settings-label">Alamat</div>
@@ -379,7 +385,7 @@
       </div>
     </div>
 
-    <div class="app-version">MotoKas — Kasir Digital v4.2 Pro<br>Build 2025 · Sistem Kasir untuk Bengkel Motor</div>
+    <div class="app-version">MotoKas — Kasir Digital v4.2<br>Build 2025 · Sistem Kasir untuk Bengkel Motor</div>
   </div>
 
   <!-- Bottom Nav -->
@@ -417,24 +423,29 @@
       <div class="modal-label">Kategori *</div>
       <select class="modal-select" id="prod-cat">
         <option value="">-- Pilih --</option>
-        <option>Oli</option><option>Spare Part</option><option>Aksesoris</option>
-        <option>Ban</option><option>Aki</option><option>Lainnya</option><option>Jasa Servis</option>
+        <option>Oli</option>
+        <option>Spare Part</option>
+        <option>Aksesoris</option>
+        <option>Ban</option>
+        <option>Aki</option>
+        <option>Lainnya</option>
+        <option>Jasa Servis</option>
       </select>
     </div>
     <div class="modal-grid-2">
       <div class="modal-row">
         <div class="modal-label">Harga Modal (HPP)</div>
-        <input class="modal-input" id="prod-hpp" type="number" placeholder="0" min="0">
+        <input class="modal-input" id="prod-hpp"    type="number" placeholder="0" min="0">
       </div>
       <div class="modal-row">
         <div class="modal-label">Harga Jual *</div>
-        <input class="modal-input" id="prod-harga" type="number" placeholder="0" min="0">
+        <input class="modal-input" id="prod-harga"  type="number" placeholder="0" min="0">
       </div>
     </div>
     <div class="modal-grid-2">
       <div class="modal-row">
         <div class="modal-label">Stok</div>
-        <input class="modal-input" id="prod-stok" type="number" placeholder="0" min="0">
+        <input class="modal-input" id="prod-stok"    type="number" placeholder="0" min="0">
       </div>
       <div class="modal-row">
         <div class="modal-label">Min. Stok Alert</div>
@@ -462,11 +473,11 @@
     <div class="modal-title">🔑 Ganti PIN</div>
     <div class="modal-row">
       <div class="modal-label">PIN Lama</div>
-      <input class="modal-input" id="pin-lama"   type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+      <input class="modal-input" id="pin-lama"    type="password" maxlength="4" placeholder="••••" inputmode="numeric">
     </div>
     <div class="modal-row">
       <div class="modal-label">PIN Baru (4 digit)</div>
-      <input class="modal-input" id="pin-baru"   type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+      <input class="modal-input" id="pin-baru"    type="password" maxlength="4" placeholder="••••" inputmode="numeric">
     </div>
     <div class="modal-row">
       <div class="modal-label">Konfirmasi PIN Baru</div>
@@ -516,24 +527,18 @@
   2. Chart.js     — sync, tersedia sebelum app.js
   3. app.js       — sync, definisikan semua fungsi global
   4. firebase.js  — type="module" (auto-defer), async Firebase init
-  5. aktivasi.js  — defer, berjalan setelah DOM parse selesai;
-                    patchAppFunctions() dipanggil dari initAktivasi()
-                    dengan retry agar aman meski firebase.js belum selesai
+  5. aktivasi.js  — defer, berjalan setelah DOM parse selesai
 -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.8/sweetalert2.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="js/app.js"></script>
 <script type="module" src="js/firebase.js"></script>
-<!-- FIX: tambahkan defer agar aktivasi.js berjalan setelah DOM parse,
-     setara dengan ES module — menghilangkan race condition dengan firebase.js -->
 <script defer src="js/aktivasi.js"></script>
 
 <script>
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      // FIX: jangan pakai Date.now() — menyebabkan SW re-register setiap buka halaman
-      // yang membatalkan caching PWA offline. Ganti versi manual saat ada update SW.
-      navigator.serviceWorker.register('./sw.js?v=4.0')
+      navigator.serviceWorker.register('./sw.js?v=4.2')
         .then(reg => reg.update())
         .catch(err => console.warn('SW error:', err));
     });

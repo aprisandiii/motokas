@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MotoKas">
+<meta name="theme-color" content="#0f0f0f">
+<title>MotoKas — Kasir Digital</title>
+<link rel="manifest" href="manifest.json">
+<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.8/sweetalert2.min.css">
+</head>
+<body>
+
+<!-- ══════════════════════════
+     AUTH SCREEN
+══════════════════════════ -->
+<div id="auth-screen">
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <img src="icons/icon-192.png" alt="MotoKas" style="width:72px;height:72px;border-radius:16px;">
+      <h1 class="auth-brand">MotoKas</h1>
+      <p class="auth-sub">Kasir Digital untuk Bengkel Motor</p>
+    </div>
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" id="tab-login"    onclick="authTab('login')">Masuk</button>
+      <button class="auth-tab"        id="tab-register" onclick="authTab('register')">Daftar</button>
+    </div>
+
+    <!-- Form Login -->
+    <div id="form-login">
+      <input class="auth-input" id="login-email"    type="email"    placeholder="Email"    autocomplete="email">
+      <input class="auth-input" id="login-password" type="password" placeholder="Password" autocomplete="current-password">
+      <div class="auth-error" id="login-error"></div>
+      <button class="auth-btn" onclick="doLogin()">🔑 Masuk</button>
+    </div>
+    <p class="auth-hint">
+      Lupa password?
+      <span onclick="lupaPassword()">Kirim email reset</span>
+    </p>
+
+    <!-- Form Register -->
+    <div id="form-register" style="display:none">
+      <input class="auth-input" id="reg-nama"     type="text"     placeholder="Nama Toko"                   autocomplete="off">
+      <input class="auth-input" id="reg-email"    type="email"    placeholder="Email"                       autocomplete="email">
+      <input class="auth-input" id="reg-password" type="password" placeholder="Password (min. 6 karakter)"  autocomplete="new-password">
+      <div class="auth-error" id="reg-error"></div>
+      <button class="auth-btn" onclick="doRegister()">📝 Daftar Sekarang</button>
+    </div>
+
+    <div class="auth-version">MotoKas v5.2 · Build 2025</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     PIN SCREEN
+══════════════════════════ -->
+<div id="pin-screen">
+  <div class="pin-logo">
+    <div class="pin-icon-wrap">
+      <img src="icons/icon-512.png" alt="MotoKas" style="width:48px;height:48px;border-radius:12px;">
+    </div>
+    <h1 id="pin-store-name">Nama Toko</h1>
+    <p id="pin-store-addr">Masukkan PIN untuk membuka kasir</p>
+  </div>
+  <div class="pin-dots" id="pinDots">
+    <div class="pin-dot" id="d0"></div>
+    <div class="pin-dot" id="d1"></div>
+    <div class="pin-dot" id="d2"></div>
+    <div class="pin-dot" id="d3"></div>
+  </div>
+  <div class="pin-status" id="pinStatus">PIN default: 1234</div>
+  <div class="pin-grid">
+    <button class="pin-btn" onclick="pinInput('1')">1</button>
+    <button class="pin-btn" onclick="pinInput('2')">2</button>
+    <button class="pin-btn" onclick="pinInput('3')">3</button>
+    <button class="pin-btn" onclick="pinInput('4')">4</button>
+    <button class="pin-btn" onclick="pinInput('5')">5</button>
+    <button class="pin-btn" onclick="pinInput('6')">6</button>
+    <button class="pin-btn" onclick="pinInput('7')">7</button>
+    <button class="pin-btn" onclick="pinInput('8')">8</button>
+    <button class="pin-btn" onclick="pinInput('9')">9</button>
+    <button class="pin-btn pin-zero" onclick="pinInput('0')">0</button>
+    <button class="pin-btn pin-del"  onclick="pinDel()">⌫</button>
+  </div>
+  <p class="pin-hint">Lupa PIN? <span onclick="resetPinPrompt()">Reset via kode rahasia</span></p>
+</div>
+
+<!-- ══════════════════════════
+     INSTALL BANNER
+══════════════════════════ -->
+<div id="install-banner">
+  <p>📱 Install sebagai aplikasi di perangkat Anda</p>
+  <button class="btn-install"      onclick="installPWA()">Install</button>
+  <button class="btn-close-banner" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+</div>
+
+<!-- Toast -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════
+     MAIN APP
+══════════════════════════ -->
+<div id="app">
+
+  <!-- Header -->
+  <div class="app-header">
+    <div class="header-left">
+      <div class="header-logo">
+        <img src="icons/icon-192.png" alt="MotoKas" style="width:32px;height:32px;border-radius:8px;">
+      </div>
+      <div>
+        <div class="header-title" id="hdr-name">Nama Toko</div>
+        <div class="header-sub"   id="hdr-sub">v5.2</div>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" title="Ganti PIN"      onclick="openModal('modal-pin')">🔑</button>
+      <button class="icon-btn" title="Logout Akun"    onclick="logoutAkun()">🚪</button>
+      <button class="icon-btn" title="Kunci Aplikasi" onclick="lockApp()">🔒</button>
+    </div>
+  </div>
+
+  <!-- ── DASHBOARD ── -->
+  <div id="page-dashboard" class="page active">
+    <div class="stat-grid">
+      <div class="stat-card omzet">
+        <div class="stat-label">Omzet Hari Ini</div>
+        <div class="stat-value" id="stat-omzet">Rp 0</div>
+      </div>
+      <div class="stat-card laba">
+        <div class="stat-label">Laba Hari Ini</div>
+        <div class="stat-value" id="stat-laba">Rp 0</div>
+      </div>
+      <div class="stat-card trx">
+        <div class="stat-label">Transaksi</div>
+        <div class="stat-value" id="stat-trx">0</div>
+      </div>
+      <div class="stat-card kritis">
+        <div class="stat-label">Stok Kritis</div>
+        <div class="stat-value" id="stat-kritis">0</div>
+      </div>
+    </div>
+
+    <div class="chart-wrap">
+      <div class="chart-title">
+        <span>📈 Omzet &amp; Laba 7 Hari</span>
+        <div class="chart-legend">
+          <span class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>Omzet</span>
+          <span class="legend-item"><span class="legend-dot" style="background:var(--green)"></span>Laba</span>
+        </div>
+      </div>
+      <canvas id="chartOmzet" height="100"></canvas>
+    </div>
+
+    <div class="section-title">⚠️ Stok Kritis</div>
+    <div class="kritis-list" id="kritis-list">
+      <div class="empty-state"><div class="empty-icon">✅</div>Semua stok aman</div>
+    </div>
+
+    <div class="section-title">🏆 Produk Terlaris (Bulan Ini)</div>
+    <div id="terlaris-list">
+      <div class="empty-state"><div class="empty-icon">📦</div>Belum ada data penjualan</div>
+    </div>
+  </div>
+
+  <!-- ── PRODUK ── -->
+  <div id="page-produk" class="page">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="search-produk" placeholder="Cari produk atau SKU..." oninput="renderProduk()">
+    </div>
+    <div class="filter-scroll" id="filter-cat">
+      <span class="filter-chip active" data-cat="Semua"       onclick="setFilter(this)">Semua</span>
+      <span class="filter-chip"        data-cat="Oli"         onclick="setFilter(this)">Oli</span>
+      <span class="filter-chip"        data-cat="Spare Part"  onclick="setFilter(this)">Spare Part</span>
+      <span class="filter-chip"        data-cat="Aksesoris"   onclick="setFilter(this)">Aksesoris</span>
+      <span class="filter-chip"        data-cat="Ban"         onclick="setFilter(this)">Ban</span>
+      <span class="filter-chip"        data-cat="Aki"         onclick="setFilter(this)">Aki</span>
+      <span class="filter-chip"        data-cat="Lainnya"     onclick="setFilter(this)">Lainnya</span>
+      <span class="filter-chip"        data-cat="Jasa Servis" onclick="setFilter(this)">🔧 Jasa</span>
+    </div>
+    <div class="produk-list" id="produk-list"></div>
+    <button class="fab"
+      onclick="document.getElementById('edit-produk-id').value=''; openModal('modal-tambah-produk')">＋</button>
+  </div>
+
+  <!-- ── KASIR ── -->
+  <div id="page-kasir" class="page">
+    <!-- Jasa Servis -->
+    <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:14px;margin-bottom:12px">
+      <div style="font-size:13px;font-weight:700;margin-bottom:10px;color:var(--accent)">🔧 Tambah Jasa Servis</div>
+      <input type="text"   class="input-full" id="jasa-nama"    placeholder="Nama jasa (contoh: Ganti Oli Mesin)">
+      <input type="number" class="input-full" id="jasa-harga"   placeholder="Harga jasa (Rp)" min="0">
+      <input type="text"   class="input-full" id="jasa-mekanik" placeholder="Nama mekanik">
+      <button class="btn-primary" style="width:100%;margin-top:4px" onclick="tambahJasa()">＋ Tambah ke Keranjang</button>
+    </div>
+
+    <div class="cart-empty" id="cart-empty">
+      <div class="empty-icon">🛒</div>
+      <p>Keranjang kosong</p>
+      <p style="font-size:11px;margin-top:4px;color:var(--text3)">Tambah produk dari tab Produk</p>
+    </div>
+    <div class="cart-list" id="cart-list" style="display:none"></div>
+
+    <div class="checkout-card">
+      <div class="checkout-row">
+        <span class="checkout-label">Subtotal</span>
+        <span id="co-subtotal">Rp 0</span>
+      </div>
+
+      <div class="diskon-section">
+        <div class="diskon-label">Diskon</div>
+        <div class="diskon-wrap">
+          <input type="number" id="diskon-val" placeholder="0" oninput="hitungTotal()" min="0">
+          <div class="diskon-toggle">
+            <button class="active" id="diskon-rp"  onclick="setDiskonMode('rp')">Rp</button>
+            <button               id="diskon-pct" onclick="setDiskonMode('pct')">%</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="checkout-row">
+        <span class="checkout-label">Diskon</span>
+        <span style="color:var(--red)" id="co-diskon">- Rp 0</span>
+      </div>
+      <div class="checkout-row total-row">
+        <span>TOTAL</span>
+        <span id="co-total">Rp 0</span>
+      </div>
+
+      <div id="laba-warn"></div>
+
+      <div class="payment-label">Metode Pembayaran</div>
+      <div class="payment-methods">
+        <button class="payment-btn active" onclick="setPayment(this,'tunai')">💵 Tunai</button>
+        <button class="payment-btn"        onclick="setPayment(this,'transfer')">🏦 Transfer</button>
+        <button class="payment-btn"        onclick="setPayment(this,'qris')">📱 QRIS</button>
+      </div>
+
+      <div id="tunai-section">
+        <input type="number" class="input-full" id="uang-bayar" placeholder="Jumlah bayar (Rp)" oninput="hitungKembalian()">
+        <div class="kembalian-row" id="kembalian-row" style="display:none">
+          <span>💵 Kembalian</span>
+          <span id="kembalian-val">Rp 0</span>
+        </div>
+      </div>
+
+      <input type="text" class="input-full" id="kasir-name"   placeholder="Nama kasir (opsional)"           style="margin-top:8px">
+      <input type="text" class="input-full" id="mekanik-name" placeholder="Nama mekanik (untuk jasa servis)" style="margin-top:4px">
+
+      <button class="btn-checkout" id="btn-checkout" onclick="checkout()" disabled>
+        ✔ Proses Checkout
+      </button>
+      <button class="btn-cetak" onclick="cetakNotaTerakhir()">🖨 Cetak Nota Terakhir</button>
+    </div>
+  </div>
+
+  <!-- ── LAPORAN ── -->
+  <div id="page-laporan" class="page">
+    <!-- Preset Periode -->
+    <div class="preset-scroll">
+      <button class="preset-chip" onclick="setPreset('hari-ini')">Hari Ini</button>
+      <button class="preset-chip" onclick="setPreset('kemarin')">Kemarin</button>
+      <button class="preset-chip" onclick="setPreset('minggu-ini')">Minggu Ini</button>
+      <button class="preset-chip" onclick="setPreset('minggu-lalu')">Minggu Lalu</button>
+      <button class="preset-chip" onclick="setPreset('7-hari')">7 Hari</button>
+      <button class="preset-chip" onclick="setPreset('30-hari')">30 Hari</button>
+      <button class="preset-chip" onclick="setPreset('bulan-ini')">Bulan Ini</button>
+      <button class="preset-chip" onclick="setPreset('bulan-lalu')">Bulan Lalu</button>
+      <button class="preset-chip" onclick="setPreset('tahun-ini')">Tahun Ini</button>
+      <button class="preset-chip" onclick="setPreset('tahun-lalu')">Tahun Lalu</button>
+    </div>
+
+    <!-- Custom Date Range -->
+    <div class="date-filter">
+      <input type="date" id="date-dari"   onchange="renderLaporan()">
+      <input type="date" id="date-sampai" onchange="renderLaporan()">
+      <button class="btn-filter-date" onclick="resetDateFilter()">Reset</button>
+    </div>
+
+    <!-- Ringkasan Periode -->
+    <div id="ringkasan-periode" style="display:none"></div>
+
+    <div class="section-title">📤 Export Data</div>
+    <div class="export-grid">
+      <button class="export-btn" onclick="exportCSV()"><span class="exp-icon">📊</span>CSV</button>
+      <button class="export-btn" onclick="exportTXT()"><span class="exp-icon">📄</span>TXT</button>
+      <button class="export-btn" onclick="exportJSON()"><span class="exp-icon">💾</span>Backup</button>
+      <button class="export-btn" onclick="document.getElementById('restore-file').click()"><span class="exp-icon">📂</span>Restore</button>
+      <button class="export-btn" onclick="kirimSheets()"><span class="exp-icon">📗</span>Sheets</button>
+      <button class="export-btn" onclick="openModal('modal-sheets')"><span class="exp-icon">🔗</span>Koneksi</button>
+    </div>
+    <input type="file" id="restore-file" accept=".json" style="display:none" onchange="restoreJSON(event)">
+
+    <div class="section-title">📊 Laporan Harian</div>
+    <div class="laporan-table-wrap">
+      <table class="laporan-table">
+        <thead>
+          <tr><th>Tanggal</th><th>Omzet</th><th>Laba</th><th>Trx</th><th>Terlaris</th></tr>
+        </thead>
+        <tbody id="laporan-tbody"></tbody>
+      </table>
+    </div>
+    <button class="btn-danger" style="width:100%;margin-bottom:16px" onclick="resetLaporan()">🗑 Reset Laporan</button>
+
+    <div class="section-title">🔧 Laporan Per Mekanik (Bulan Ini)</div>
+    <div id="laporan-mekanik-list" style="margin-bottom:16px"></div>
+
+    <div class="section-title">🧾 Riwayat Transaksi</div>
+    <select id="filter-payment" class="modal-select"
+      style="width:100%;margin-bottom:10px;font-size:13px" onchange="renderRiwayat()">
+      <option value="">Semua Metode</option>
+      <option value="tunai">Tunai</option>
+      <option value="transfer">Transfer</option>
+      <option value="qris">QRIS</option>
+    </select>
+    <input type="text" class="modal-select" id="filter-mekanik"
+      placeholder="🔍 Filter by mekanik..." oninput="renderRiwayat()"
+      style="width:100%;margin-bottom:10px;font-size:13px">
+    <div id="riwayat-list"></div>
+    <button class="btn-danger" style="width:100%;margin-top:8px" onclick="resetRiwayat()">🗑 Reset Riwayat</button>
+  </div>
+
+  <!-- ── PENGATURAN ── -->
+  <div id="page-settings" class="page">
+    <div class="section-title">🏪 Informasi Toko</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="settings-label">Nama Toko</div>
+        <input class="settings-input" id="set-nama"    placeholder="Nama toko"       oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Alamat</div>
+        <input class="settings-input" id="set-alamat"  placeholder="Alamat toko"     oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">No. Telepon</div>
+        <input class="settings-input" id="set-telp"    placeholder="08xx-xxxx-xxxx"  oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Footer Nota 1</div>
+        <input class="settings-input" id="set-footer1" placeholder="Terima kasih telah berbelanja!" oninput="saveSettings()">
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Footer Nota 2</div>
+        <input class="settings-input" id="set-footer2" placeholder="Barang yang sudah dibeli tidak dapat dikembalikan" oninput="saveSettings()">
+      </div>
+    </div>
+
+    <div class="section-title">🔗 Google Sheets</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <div class="sheets-status">
+          <div class="sheets-dot" id="sheets-dot"></div>
+          <span id="sheets-status-text">Belum terhubung</span>
+        </div>
+        <div class="settings-label">URL Apps Script</div>
+        <input class="settings-input" id="set-sheets-url" placeholder="https://script.google.com/macros/s/..." oninput="saveSettings()">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button class="btn-primary"   onclick="tesSheets()" style="flex:1">🔌 Tes Koneksi</button>
+          <button class="btn-secondary" onclick="openModal('modal-sheets')" style="flex:1">📖 Cara Setup</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">⚙️ Preferensi</div>
+    <div class="settings-section">
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Auto Kirim ke Sheets</div>
+          <div class="toggle-desc">Kirim otomatis setiap checkout</div>
+        </div>
+        <button class="toggle" id="toggle-auto-sheets" onclick="toggleSetting('auto_sheets',this)"></button>
+      </div>
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Tampilkan Laba di Struk</div>
+          <div class="toggle-desc">Sembunyikan HPP dari kasir biasa</div>
+        </div>
+        <button class="toggle" id="toggle-show-laba" onclick="toggleSetting('show_laba',this)"></button>
+      </div>
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Alert Stok Kritis</div>
+          <div class="toggle-desc">Tampilkan peringatan stok minimum</div>
+        </div>
+        <button class="toggle on" id="toggle-stok-alert" onclick="toggleSetting('stok_alert',this)"></button>
+      </div>
+    </div>
+
+    <div class="section-title">🔐 Keamanan</div>
+    <div class="settings-section">
+      <div class="settings-toggle-row">
+        <div class="toggle-info">
+          <div class="toggle-title">Ganti PIN</div>
+          <div class="toggle-desc">PIN 4 digit angka</div>
+        </div>
+        <button class="btn-primary" onclick="openModal('modal-pin')">Ganti</button>
+      </div>
+      <div class="settings-row">
+        <div class="settings-label">Kode Rahasia (untuk reset PIN)</div>
+        <input class="settings-input" id="set-kode-rahasia" placeholder="Contoh: MOTOR88" oninput="saveSettings()">
+      </div>
+    </div>
+
+    <!-- Section aktivasi akan diinjeksi di sini oleh aktivasi.js -->
+
+    <div class="section-title">❓ Bantuan</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <button class="btn-tour" onclick="startTour(true)">
+          🎓 Ulangi Tutorial Aplikasi
+        </button>
+        <div class="settings-label" style="margin-top:6px">
+          Tampilkan panduan penggunaan aplikasi dari awal.
+        </div>
+      </div>
+    </div>
+
+    <div class="section-title">⚠️ Zona Berbahaya</div>
+    <div class="settings-section">
+      <div class="settings-row">
+        <button class="btn-danger" style="width:100%" onclick="resetAllData()">🗑 Reset Semua Data</button>
+        <div class="settings-label" style="margin-top:6px">
+          Hapus semua produk, laporan, dan riwayat transaksi. Tidak bisa dikembalikan.
+        </div>
+      </div>
+    </div>
+
+    <button class="btn-primary" style="width:100%;margin-bottom:16px" onclick="saveSettings(true)">💾 Simpan Pengaturan</button>
+    <div class="app-version">MotoKas — Kasir Digital v5.2<br>Build 2025 · Sistem Kasir untuk Bengkel Motor</div>
+  </div>
+
+  <!-- Bottom Nav -->
+  <div class="bottom-nav">
+    <button class="nav-item active" onclick="navTo('dashboard',this)">
+      <span class="nav-icon">🏠</span><span>Dashboard</span>
+    </button>
+    <button class="nav-item" onclick="navTo('produk',this)">
+      <span class="nav-icon">📦</span><span>Produk</span>
+    </button>
+    <button class="nav-item" onclick="navTo('kasir',this)">
+      <span class="nav-icon">🛒</span><span>Kasir</span>
+      <span class="badge" id="cart-badge" style="display:none"></span>
+    </button>
+    <button class="nav-item" onclick="navTo('laporan',this)">
+      <span class="nav-icon">📊</span><span>Laporan</span>
+    </button>
+    <button class="nav-item" onclick="navTo('settings',this)">
+      <span class="nav-icon">⚙️</span><span>Pengaturan</span>
+    </button>
+  </div>
+</div><!-- /#app -->
+
+<!-- ══════════════════════════
+     MODALS
+══════════════════════════ -->
+
+<!-- Modal: Tambah/Edit Produk -->
+<div class="modal-overlay" id="modal-tambah-produk">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="modal-produk-title">Tambah Produk</div>
+    <input type="hidden" id="edit-produk-id">
+    <div class="modal-row">
+      <div class="modal-label">Nama Produk *</div>
+      <input class="modal-input" id="prod-nama" placeholder="Contoh: Oli Fastron 1L">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Kategori *</div>
+      <select class="modal-select" id="prod-cat">
+        <option value="">-- Pilih --</option>
+        <option>Oli</option>
+        <option>Spare Part</option>
+        <option>Aksesoris</option>
+        <option>Ban</option>
+        <option>Aki</option>
+        <option>Lainnya</option>
+        <option>Jasa Servis</option>
+      </select>
+    </div>
+    <div class="modal-grid-2">
+      <div class="modal-row">
+        <div class="modal-label">Harga Modal (HPP)</div>
+        <input class="modal-input" id="prod-hpp"   type="number" placeholder="0" min="0"
+               oninput="checkHPPWarning()">
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Harga Jual *</div>
+        <input class="modal-input" id="prod-harga" type="number" placeholder="0" min="0"
+               oninput="checkHPPWarning()">
+      </div>
+    </div>
+    <div class="hpp-warn" id="hpp-warn">⚠️ HPP ≥ Harga Jual — transaksi ini akan rugi!</div>
+    <div class="modal-grid-2">
+      <div class="modal-row">
+        <div class="modal-label">Stok</div>
+        <input class="modal-input" id="prod-stok"    type="number" placeholder="0" min="0">
+      </div>
+      <div class="modal-row">
+        <div class="modal-label">Min. Stok Alert</div>
+        <input class="modal-input" id="prod-minstok" type="number" placeholder="5" min="0">
+      </div>
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Barcode / SKU (opsional)</div>
+      <input class="modal-input" id="prod-sku" placeholder="Contoh: OLI-FST-1L">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-tambah-produk')">Batal</button>
+      <button class="btn-primary"   onclick="simpanProduk()">💾 Simpan</button>
+    </div>
+    <div id="edit-delete-row" style="margin-top:8px;display:none">
+      <button class="btn-danger" style="width:100%" onclick="hapusProduk()">🗑 Hapus Produk Ini</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ganti PIN -->
+<div class="modal-overlay" id="modal-pin">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔑 Ganti PIN</div>
+    <div class="modal-row">
+      <div class="modal-label">PIN Lama</div>
+      <input class="modal-input" id="pin-lama"    type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">PIN Baru (4 digit)</div>
+      <input class="modal-input" id="pin-baru"    type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-row">
+      <div class="modal-label">Konfirmasi PIN Baru</div>
+      <input class="modal-input" id="pin-konfirm" type="password" maxlength="4" placeholder="••••" inputmode="numeric">
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" onclick="closeModal('modal-pin')">Batal</button>
+      <button class="btn-primary"   onclick="gantiPIN()">✔ Simpan PIN</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Nota / Struk -->
+<div class="modal-overlay" id="modal-nota">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🧾 Struk Transaksi</div>
+    <div class="nota-area" id="nota-content"></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-primary"   style="flex:1" onclick="window.print()">🖨 Print</button>
+      <button class="btn-secondary" style="flex:1" onclick="shareNota()">📤 Bagikan</button>
+      <button class="btn-secondary"               onclick="closeModal('modal-nota')">Tutup</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Sheets Setup -->
+<div class="modal-overlay" id="modal-sheets">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">🔗 Setup Google Sheets</div>
+    <div class="sheets-guide">
+      <strong>Cara mendapatkan URL Apps Script:</strong><br>
+      1. Buka <strong style="color:var(--accent)">script.google.com</strong><br>
+      2. Buat project baru → paste kode Apps Script<br>
+      3. Deploy → New Deployment → Web App<br>
+      4. Set akses: <em>"Anyone"</em> → Deploy<br>
+      5. Copy URL dan paste di Pengaturan
+    </div>
+    <button class="btn-primary" style="width:100%;margin-top:14px" onclick="closeModal('modal-sheets')">Mengerti</button>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     SCRIPTS
+     Urutan penting:
+     1. SweetAlert2 CSS (di <head>)
+     2. Chart.js     — sync, tersedia sebelum app.js
+     3. SweetAlert2  — sync JS
+     4. app.js       — type="module", entry point utama
+     5. firebase.js  — type="module", async Firebase init
+     6. aktivasi.js  — defer, berjalan setelah DOM selesai
+══════════════════════════ -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/sweetalert2/11.10.8/sweetalert2.min.js"></script>
+<script type="module" src="js/app.js"></script>
+<script type="module" src="js/firebase.js"></script>
+<script defer src="js/aktivasi.js"></script>
+
+<script>
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js?v=5.0')
+        .then(reg => reg.update())
+        .catch(err => console.warn('SW error:', err));
+    });
+  }
+</script>
+</body>
+</html>

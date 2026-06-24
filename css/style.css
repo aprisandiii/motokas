@@ -772,7 +772,7 @@ body {
      elemen lain benar-benar lepas dari alur halaman.
      #modal-nota aman di-display:none-kan di sini karena dia BUKAN anak
      dari #app (sibling terpisah di body), jadi tidak ikut hilang. */
-  #auth-screen, #pin-screen, #install-banner, #toast, #app,
+  #auth-screen, #pin-screen, #install-banner, #toast, #app, #fbSyncBadge,
   .modal-overlay:not(#modal-nota) { display: none !important; }
 
   /* Modal struk: lepas semua "bungkus" modal (overlay gelap, sheet, dsb)

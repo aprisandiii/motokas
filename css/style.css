@@ -759,15 +759,45 @@ body {
 @page { size: 80mm auto; margin: 0; }
 @media print {
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  html, body { width: 80mm; }
-  body * { visibility: hidden; }
-  .nota-area, .nota-area * { visibility: visible; }
+
+  /* FIX: html/body punya "min-height: 100vh" di rule umum. Walaupun semua
+     konten disembunyikan, min-height itu tetap memaksa tinggi 1 layar penuh
+     sehingga struk kepotong jadi 2 halaman cetak. Nol-kan saat print. */
+  html, body { width: 80mm; height: auto !important; min-height: 0 !important; background: #fff !important; }
+
+  /* FIX UTAMA: sebelumnya pakai visibility:hidden, yang menyembunyikan
+     elemen secara visual TAPI tetap memakan ruang (tinggi) di halaman —
+     ini yang membuat #app (min-height:100vh) tetap "memanjangkan" dokumen
+     sampai 2 lembar walau tak kelihatan. Sekarang pakai display:none agar
+     elemen lain benar-benar lepas dari alur halaman.
+     #modal-nota aman di-display:none-kan di sini karena dia BUKAN anak
+     dari #app (sibling terpisah di body), jadi tidak ikut hilang. */
+  #auth-screen, #pin-screen, #install-banner, #toast, #app,
+  .modal-overlay:not(#modal-nota) { display: none !important; }
+
+  /* Modal struk: lepas semua "bungkus" modal (overlay gelap, sheet, dsb)
+     supaya yang tercetak murni isi struknya saja, full lebar 80mm. */
+  #modal-nota {
+    display: block !important; position: static !important;
+    background: #fff !important; backdrop-filter: none !important;
+  }
+  #modal-nota .modal-sheet {
+    width: auto !important; max-width: none !important;
+    max-height: none !important; overflow: visible !important;
+    background: #fff !important; box-shadow: none !important;
+    border: none !important; border-radius: 0 !important; padding: 0 !important;
+  }
+  #modal-nota .modal-handle,
+  #modal-nota .modal-title,
+  #modal-nota button { display: none !important; }
+
   .nota-area {
-    position: absolute; top: 0; left: 0;
+    position: static !important;
     width: 72mm; font-family: 'Courier New', Courier, monospace;
     font-size: 13px; font-weight: bold; line-height: 1.7;
     color: #000 !important; background: #fff !important;
-    white-space: pre; padding: 2mm 4mm;
+    white-space: pre-wrap; padding: 2mm 4mm;
+    max-height: none !important; overflow: visible !important;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }
 }

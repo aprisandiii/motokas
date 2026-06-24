@@ -794,9 +794,9 @@ body {
   .nota-area {
     position: static !important;
     width: 72mm; font-family: 'Courier New', Courier, monospace;
-    font-size: 13px; font-weight: bold; line-height: 1.7;
+    font-size: 12px; font-weight: bold; line-height: 1.7;
     color: #000 !important; background: #fff !important;
-    white-space: pre-wrap; padding: 2mm 4mm;
+    white-space: pre-wrap; padding: 2mm 2mm;
     max-height: none !important; overflow: visible !important;
     -webkit-print-color-adjust: exact; print-color-adjust: exact;
   }

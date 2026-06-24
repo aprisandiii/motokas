@@ -346,6 +346,11 @@ export function generateNota(trx) {
   const prefs = getData('prefs', { show_laba: false });
   const w     = 32;
   const center = str => ' '.repeat(Math.max(0, Math.floor((w - str.length) / 2))) + str;
+  // FIX: rata kanan nominal biar rapi kayak struk toko pada umumnya
+  const rightAlign = (left, right) => {
+    const spasi = Math.max(1, w - left.length - right.length);
+    return left + ' '.repeat(spasi) + right;
+  };
   const line   = '================================';
   const dash   = '--------------------------------';
   let n = '';
@@ -361,22 +366,23 @@ export function generateNota(trx) {
   n += dash + '\n';
   trx.items.forEach(i => {
     const namaShort = i.nama.length > 30 ? i.nama.substring(0, 30) + '..' : i.nama;
-    n += `${namaShort}\n  ${i.qty} x ${fmtRp(i.harga)}\n  = ${fmtRp(i.harga * i.qty)}\n`;
+    n += `${namaShort}\n`;
+    n += rightAlign(`  ${i.qty} x ${fmtRp(i.harga)}`, fmtRp(i.harga * i.qty)) + '\n';
   });
   n += dash + '\n';
-  n += `Subtotal: ${fmtRp(trx.subtotal)}\n`;
-  if (trx.diskon > 0) n += `Diskon  : -${fmtRp(trx.diskon)}\n`;
-  n += `TOTAL   : ${fmtRp(trx.total)}\n`;
+  n += rightAlign('Subtotal :', fmtRp(trx.subtotal)) + '\n';
+  if (trx.diskon > 0) n += rightAlign('Diskon :', '-' + fmtRp(trx.diskon)) + '\n';
+  n += rightAlign('TOTAL :', fmtRp(trx.total)) + '\n';
   // BUG FIX #4: tampilkan info pembayaran sesuai metode
   if (trx.metode === 'tunai') {
-    n += `Bayar   : ${fmtRp(trx.bayar)}\n`;
-    n += `Kembali : ${fmtRp(trx.kembalian)}\n`;
+    n += rightAlign('Bayar :', fmtRp(trx.bayar)) + '\n';
+    n += rightAlign('Kembali :', fmtRp(trx.kembalian)) + '\n';
   } else {
-    n += `Status  : LUNAS (${trx.metode.toUpperCase()})\n`;
+    n += rightAlign('Status :', `LUNAS (${trx.metode.toUpperCase()})`) + '\n';
   }
   if (prefs.show_laba && trx.laba !== undefined) {
     n += dash + '\n';
-    n += `Laba    : ${fmtRp(trx.laba)}\n`;
+    n += rightAlign('Laba :', fmtRp(trx.laba)) + '\n';
   }
   n += line + '\n';
   n += center(s.footer1 || 'Terima kasih!') + '\n';

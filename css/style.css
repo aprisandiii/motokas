@@ -1165,3 +1165,47 @@ select[style*="borderColor: var(--red)"] {
   transition: all 0.15s;
 }
 .btn-tour:hover { background: rgba(91,155,213,0.2); }
+
+/* ── TOTAL ASET STOK ─────────────────────────────────── */
+.aset-wrap {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 14px;
+  margin-bottom: 12px;
+}
+.aset-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  margin-bottom: 10px;
+  letter-spacing: 0.3px;
+}
+.aset-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.aset-card {
+  background: var(--bg3);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+}
+.aset-card.potensi {
+  grid-column: 1 / -1;
+}
+.aset-label {
+  font-size: 11px;
+  color: var(--text3);
+  margin-bottom: 4px;
+}
+.aset-value {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text1);
+}
+.aset-card.modal .aset-value { color: #818cf8; }
+.aset-card.jual  .aset-value { color: var(--accent); }
+.aset-card.potensi .aset-value { color: var(--green); }
+.aset-card.potensi .aset-value[data-minus="true"] { color: var(--red); }

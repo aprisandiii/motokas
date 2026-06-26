@@ -30,8 +30,30 @@ export function renderDashboard() {
   const labaEl = document.getElementById('stat-laba');
   if (labaEl) labaEl.dataset.minus = hari.laba < 0 ? 'true' : 'false';
   updateKritisCount();
+  renderTotalAset();
   renderChart();
   renderTerlaris();
+}
+
+export function renderTotalAset() {
+  const produk = getData('produk', []);
+  let modalTotal = 0;
+  let jualTotal  = 0;
+  produk.forEach(p => {
+    const stok = p.stok || 0;
+    modalTotal += (p.hpp   || 0) * stok;
+    jualTotal  += (p.harga || 0) * stok;
+  });
+  const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+  setVal('stat-aset-modal', fmtRpShort(modalTotal));
+  setVal('stat-aset-jual',  fmtRpShort(jualTotal));
+  // Potensi laba stok
+  const potensi = jualTotal - modalTotal;
+  const potensiEl = document.getElementById('stat-aset-potensi');
+  if (potensiEl) {
+    potensiEl.textContent = fmtRpShort(potensi);
+    potensiEl.dataset.minus = potensi < 0 ? 'true' : 'false';
+  }
 }
 
 export function renderChart() {

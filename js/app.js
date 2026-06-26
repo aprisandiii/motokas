@@ -21,7 +21,8 @@ import { addToCart, tambahJasa, checkout, hitungTotal,
 import { renderDashboard, renderLaporan, renderRiwayat,
          voidTransaksi, konfirmasiVoid, exportCSV, exportTXT,
          exportJSON, restoreJSON, resetLaporan, resetRiwayat,
-         resetAllData, kirimSheets, tesSheets }  from './modules/laporan.js';
+         resetAllData, kirimSheets, tesSheets,
+         renderTotalAset }  from './modules/laporan.js';
 import { pinInput, pinDel, checkPin, gantiPIN,
          resetPinPrompt, lockApp, initPinLockState,
          updatePinDots, showPinStatus }          from './modules/pin.js';
@@ -75,6 +76,7 @@ Object.assign(window, {
   cetakNotaTerakhir, shareNota, lihatDetailTrx, updateCartBadge,
   // Laporan
   renderDashboard, renderLaporan, renderRiwayat,
+  renderTotalAset,
   voidTransaksi, konfirmasiVoid,
   exportCSV, exportTXT, exportJSON, restoreJSON,
   resetLaporan, resetRiwayat, kirimSheets, tesSheets,

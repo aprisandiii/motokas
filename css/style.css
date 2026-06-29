@@ -756,14 +756,13 @@ body {
 /* ═══════════════════════════════
    PRINT
 ═══════════════════════════════ */
-@page { size: 80mm auto; margin: 0; }
 @media print {
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
   /* FIX: html/body punya "min-height: 100vh" di rule umum. Walaupun semua
      konten disembunyikan, min-height itu tetap memaksa tinggi 1 layar penuh
      sehingga struk kepotong jadi 2 halaman cetak. Nol-kan saat print. */
-  html, body { width: 80mm; height: auto !important; min-height: 0 !important; background: #fff !important; }
+  html, body { height: auto !important; min-height: 0 !important; background: #fff !important; }
 
   /* FIX UTAMA: sebelumnya pakai visibility:hidden, yang menyembunyikan
      elemen secara visual TAPI tetap memakan ruang (tinggi) di halaman —
@@ -1209,3 +1208,25 @@ select[style*="borderColor: var(--red)"] {
 .aset-card.jual  .aset-value { color: var(--accent); }
 .aset-card.potensi .aset-value { color: var(--green); }
 .aset-card.potensi .aset-value[data-minus="true"] { color: var(--red); }
+
+/* ── PAPER SIZE TOGGLE ───────────────────────────────── */
+.paper-size-toggle {
+  display: flex;
+  gap: 6px;
+}
+.paper-btn {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.paper-btn.active {
+  background: rgba(245,197,66,0.15);
+  border-color: var(--accent);
+  color: var(--accent);
+}

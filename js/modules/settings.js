@@ -24,10 +24,14 @@ export function loadSettings() {
   updateHeader(s);
   updatePinScreen(s);
 
-  const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true });
+  const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true, paper_size: '80mm' });
   setToggleState('toggle-auto-sheets', prefs.auto_sheets);
   setToggleState('toggle-show-laba',   prefs.show_laba);
   setToggleState('toggle-stok-alert',  prefs.stok_alert);
+  // Set active paper size button
+  const ps = prefs.paper_size || '80mm';
+  document.querySelectorAll('.paper-btn').forEach(b => b.classList.toggle('active', b.dataset.size === ps));
+  applyPaperSize(ps);
   updateSheetsStatus(!!s.sheets_url);
 }
 
@@ -57,6 +61,33 @@ export function toggleSetting(key, btn) {
   setData('prefs', prefs);
   setToggleState(btn.id, prefs[key]);
   toast(`${key === 'auto_sheets' ? 'Auto Sheets' : key === 'show_laba' ? 'Tampilkan Laba' : 'Alert Stok'} ${prefs[key] ? 'aktif' : 'nonaktif'}`);
+}
+
+export function setPaperSize(size, btn) {
+  const prefs = getData('prefs', { auto_sheets: false, show_laba: false, stok_alert: true, paper_size: '80mm' });
+  prefs.paper_size = size;
+  setData('prefs', prefs);
+  document.querySelectorAll('.paper-btn').forEach(b => b.classList.toggle('active', b.dataset.size === size));
+  applyPaperSize(size);
+  toast(`Ukuran kertas ${size} dipilih ✓`);
+}
+
+export function applyPaperSize(size) {
+  // Inject or update a <style> tag for @page and print widths
+  let styleEl = document.getElementById('print-size-style');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'print-size-style';
+    document.head.appendChild(styleEl);
+  }
+  const contentWidth = size === '58mm' ? '50mm' : '72mm';
+  styleEl.textContent = `
+    @page { size: ${size} auto; margin: 0; }
+    @media print {
+      html, body { width: ${size} !important; }
+      .nota-area { width: ${contentWidth} !important; }
+    }
+  `;
 }
 
 function updateHeader(s) {

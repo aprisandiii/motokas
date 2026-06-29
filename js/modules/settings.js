@@ -73,19 +73,27 @@ export function setPaperSize(size, btn) {
 }
 
 export function applyPaperSize(size) {
-  // Inject or update a <style> tag for @page and print widths
   let styleEl = document.getElementById('print-size-style');
   if (!styleEl) {
     styleEl = document.createElement('style');
     styleEl.id = 'print-size-style';
     document.head.appendChild(styleEl);
   }
-  const contentWidth = size === '58mm' ? '50mm' : '72mm';
+  const is58 = size === '58mm';
+  const contentWidth  = is58 ? '50mm' : '72mm';
+  const fontSize      = is58 ? '19px' : '12px';
+  const fontWeight    = is58 ? '900'  : 'bold';
+  const lineHeight    = is58 ? '2.1'  : '1.7';
   styleEl.textContent = `
     @page { size: ${size} auto; margin: 0; }
     @media print {
       html, body { width: ${size} !important; }
-      .nota-area { width: ${contentWidth} !important; }
+      .nota-area {
+        width: ${contentWidth} !important;
+        font-size: ${fontSize} !important;
+        font-weight: ${fontWeight} !important;
+        line-height: ${lineHeight} !important;
+      }
     }
   `;
 }

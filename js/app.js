@@ -11,7 +11,7 @@ import { getData, setData, initGlobalState } from './modules/storage.js';
 import { toast, openModal, closeModal, fmtRp, fmtRpShort,
          tglKey, tglDisplay, tglKeyFromLocale, showKonfirmasiHapus } from './modules/utils.js';
 import { showScreen, navTo }                  from './modules/screen.js';
-import { loadSettings, saveSettings, toggleSetting } from './modules/settings.js';
+import { loadSettings, saveSettings, toggleSetting, setPaperSize } from './modules/settings.js';
 import { renderProduk, editProduk, simpanProduk, hapusProduk,
          openRestok, simpanRestok, setFilter, updateKritisCount } from './modules/produk.js';
 import { addToCart, tambahJasa, checkout, hitungTotal,
@@ -67,6 +67,7 @@ Object.assign(window, {
   loadSettings,
   saveSettings: saveSettingsDebounced,
   toggleSetting,
+  setPaperSize,
   // Produk
   renderProduk, editProduk, simpanProduk, hapusProduk,
   openRestok, simpanRestok, setFilter,
@@ -275,6 +276,10 @@ window.addEventListener('load', () => {
   // PIN state
   initPinLockState();
   updatePinDots();
+
+  // Apply paper size on load
+  const _prefs = getData('prefs', { paper_size: '80mm' });
+  import('./modules/settings.js').then(m => m.applyPaperSize(_prefs.paper_size || '80mm'));
   // FIX-A: tampilkan pesan sesuai kondisi PIN
   const pinSudahDiganti = getData('_pin_sudah_diganti', false);
   const savedPin        = getData('pin', '1234');

@@ -102,12 +102,6 @@ export function addToCart(id) {
   renderCart();
   hitungTotal();
   toast(`${p.nama} ditambahkan ✓`);
-  // FIX: pindah ke kasir via window agar dipanggil satu kali saja
-  // navTo sudah memanggil renderCart, jadi tidak perlu double render
-  const kasirBtn = document.querySelector('.nav-item:nth-child(3)');
-  if (kasirBtn && typeof window.navTo === 'function' && !kasirBtn.classList.contains('active')) {
-    window.navTo('kasir', kasirBtn);
-  }
 }
 
 export function tambahJasa() {

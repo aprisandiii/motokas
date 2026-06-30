@@ -229,7 +229,11 @@ export function updateKritisCount() {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div>Semua stok aman</div>';
     return;
   }
-  list.innerHTML = kritis.map(p => `
+  const LIMIT = 4;
+  const tampil = kritis.slice(0, LIMIT);
+  const sisa   = kritis.length - LIMIT;
+
+  const itemHtml = p => `
     <div class="kritis-item">
       <div>
         <div class="kritis-name">${escHtml(p.nama)}</div>
@@ -239,7 +243,26 @@ export function updateKritisCount() {
         <span class="badge-kritis">${p.stok <= 0 ? 'HABIS' : 'KRITIS'}</span>
         <button class="btn-stok-kritis" onclick="window._produkModule.openRestok(${p.id})">+Stok</button>
       </div>
-    </div>`).join('');
+    </div>`;
+
+  list.innerHTML = `
+    <div id="kritis-tampil">${tampil.map(itemHtml).join('')}</div>
+    ${sisa > 0 ? `
+    <div id="kritis-sisa" style="display:none">${kritis.slice(LIMIT).map(itemHtml).join('')}</div>
+    <button class="btn-kritis-toggle" id="btn-kritis-toggle" onclick="window._produkModule.toggleKritisList()">
+      Lihat ${sisa} lainnya ▾
+    </button>` : ''}
+  `;
+}
+
+export function toggleKritisList() {
+  const sisaEl = document.getElementById('kritis-sisa');
+  const btn    = document.getElementById('btn-kritis-toggle');
+  if (!sisaEl || !btn) return;
+  const expanded = sisaEl.style.display !== 'none';
+  sisaEl.style.display = expanded ? 'none' : 'block';
+  const sisaCount = sisaEl.children.length;
+  btn.textContent = expanded ? `Lihat ${sisaCount} lainnya ▾` : 'Tutup ▴';
 }
 
 function escHtml(str) {
@@ -251,5 +274,5 @@ function escHtml(str) {
 window._produkModule = {
   editProduk, simpanProduk, hapusProduk,
   openRestok, simpanRestok, renderProduk,
-  setFilter, updateKritisCount,
+  setFilter, updateKritisCount, toggleKritisList,
 };

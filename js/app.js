@@ -17,12 +17,13 @@ import { renderProduk, editProduk, simpanProduk, hapusProduk,
 import { addToCart, tambahJasa, checkout, hitungTotal,
          hitungKembalian, setDiskonMode, setPayment,
          changeQty, removeCart, cetakNotaTerakhir, shareNota,
-         renderCart, resetCartState, updateCartBadge, lihatDetailTrx } from './modules/cart.js';
+         renderCart, resetCartState, updateCartBadge, lihatDetailTrx,
+         toggleDP, hitungSisaDP } from './modules/cart.js';
 import { renderDashboard, renderLaporan, renderRiwayat,
          voidTransaksi, konfirmasiVoid, exportCSV, exportTXT,
          exportJSON, restoreJSON, resetLaporan, resetRiwayat,
          resetAllData, kirimSheets, tesSheets,
-         renderTotalAset }  from './modules/laporan.js';
+         renderTotalAset, renderPiutang, bukaLunasi, konfirmasiLunasi }  from './modules/laporan.js';
 import { pinInput, pinDel, checkPin, gantiPIN,
          resetPinPrompt, lockApp, initPinLockState,
          updatePinDots, showPinStatus }          from './modules/pin.js';
@@ -74,10 +75,11 @@ Object.assign(window, {
   // Cart / Kasir
   addToCart, tambahJasa, checkout, hitungTotal, hitungKembalian,
   setDiskonMode, setPayment, changeQty, removeCart,
+  toggleDP, hitungSisaDP,
   cetakNotaTerakhir, shareNota, lihatDetailTrx, updateCartBadge,
   // Laporan
   renderDashboard, renderLaporan, renderRiwayat,
-  renderTotalAset,
+  renderTotalAset, renderPiutang, bukaLunasi, konfirmasiLunasi,
   voidTransaksi, konfirmasiVoid,
   exportCSV, exportTXT, exportJSON, restoreJSON,
   resetLaporan, resetRiwayat, kirimSheets, tesSheets,

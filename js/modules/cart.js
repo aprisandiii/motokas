@@ -17,6 +17,7 @@ import { updateKritisCount, renderProduk }   from './produk.js';
 let cart                = [];
 let diskonMode          = 'rp';
 let paymentMethod       = 'tunai';
+let isDP                = false;
 export let lastNota     = '';
 export let lastTrx      = null;
 let _checkoutInProgress = false;
@@ -31,15 +32,22 @@ export function resetCartState() {
   cart                = [];
   diskonMode          = 'rp';
   paymentMethod       = 'tunai';
+  isDP                = false;
   lastNota            = '';
   lastTrx             = null;
   _checkoutInProgress = false;
   _currentTotal       = 0;
   updateCartBadge();
-  ['diskon-val','uang-bayar','mekanik-name','jasa-nama','jasa-harga','jasa-mekanik']
+  ['diskon-val','uang-bayar','mekanik-name','jasa-nama','jasa-harga','jasa-mekanik','dp-nominal']
     .forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
   const kemRow = document.getElementById('kembalian-row');
   if (kemRow) kemRow.style.display = 'none';
+  const dpCheckbox = document.getElementById('dp-checkbox');
+  if (dpCheckbox) dpCheckbox.checked = false;
+  const dpSection = document.getElementById('dp-section');
+  if (dpSection) dpSection.style.display = 'none';
+  const sisaDpRow = document.getElementById('sisa-dp-row');
+  if (sisaDpRow) sisaDpRow.style.display = 'none';
   // Reset tampilan payment method ke tunai
   document.querySelectorAll('.payment-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('.payment-btn')?.classList.add('active');
@@ -48,6 +56,34 @@ export function resetCartState() {
   // Reset diskon toggle
   document.getElementById('diskon-rp')?.classList.add('active');
   document.getElementById('diskon-pct')?.classList.remove('active');
+}
+
+// ── DP / PIUTANG ────────────────────────────────────────────
+export function toggleDP(checked) {
+  isDP = checked;
+  const dpSection = document.getElementById('dp-section');
+  if (dpSection) dpSection.style.display = checked ? 'block' : 'none';
+  if (!checked) {
+    const dpInput = document.getElementById('dp-nominal');
+    if (dpInput) dpInput.value = '';
+    const sisaDpRow = document.getElementById('sisa-dp-row');
+    if (sisaDpRow) sisaDpRow.style.display = 'none';
+  }
+}
+
+export function hitungSisaDP() {
+  const total = _currentTotal;
+  const dp    = parseFloat(document.getElementById('dp-nominal')?.value) || 0;
+  const row   = document.getElementById('sisa-dp-row');
+  if (!row) return;
+  if (dp > 0) {
+    row.style.display = 'flex';
+    const sisa = Math.max(0, total - dp);
+    const valEl = document.getElementById('sisa-dp-val');
+    if (valEl) valEl.textContent = fmtRp(sisa);
+  } else {
+    row.style.display = 'none';
+  }
 }
 
 // BUG FIX #6: setelah tambah, pindah ke tab kasir otomatis
@@ -232,9 +268,10 @@ export function checkout() {
   const kasir    = document.getElementById('kasir-name')?.value.trim()   || 'Kasir';
   const mekanik  = document.getElementById('mekanik-name')?.value.trim() || '';
   const bayar    = parseFloat(document.getElementById('uang-bayar')?.value) || 0;
+  const dpNominal = isDP ? (parseFloat(document.getElementById('dp-nominal')?.value) || 0) : 0;
 
   // Validasi checkout terpusat
-  if (!validasiCheckout(paymentMethod, total)) {
+  if (!validasiCheckout(paymentMethod, total, isDP)) {
     _checkoutInProgress = false; return;
   }
 
@@ -268,11 +305,12 @@ export function checkout() {
     items:     cart.map(c => ({ ...c })),
     subtotal, diskon, total,
     metode:    paymentMethod,
-    bayar:     paymentMethod === 'tunai' ? bayar : total,
-    kembalian: paymentMethod === 'tunai' ? Math.max(0, bayar - total) : 0,
+    bayar:     isDP ? dpNominal : (paymentMethod === 'tunai' ? bayar : total),
+    kembalian: isDP ? 0 : (paymentMethod === 'tunai' ? Math.max(0, bayar - total) : 0),
     kasir, mekanik,
     laba:   cart.reduce((s, c) => s + (c.harga - c.hpp) * c.qty, 0) - diskon,
-    status: 'selesai',
+    status: isDP ? 'piutang' : 'selesai',
+    sisa_tagihan: isDP ? Math.max(0, total - dpNominal) : 0,
   };
 
   const riwayat = getData('riwayat', []);
@@ -284,7 +322,9 @@ export function checkout() {
   const tgl     = tglKey(now);
   const laporan = getData('laporan', {});
   if (!laporan[tgl]) laporan[tgl] = { omzet: 0, laba: 0, trx: 0, terlaris: {} };
-  laporan[tgl].omzet += total;
+  // Untuk piutang/DP: omzet yang dicatat hanya sebesar DP yang diterima.
+  // Laba & terlaris tetap dicatat penuh karena barang/jasa sudah keluar.
+  laporan[tgl].omzet += isDP ? dpNominal : total;
   laporan[tgl].laba  += trx.laba;
   laporan[tgl].trx++;
   cart.forEach(c => {
@@ -310,18 +350,25 @@ export function checkout() {
 
   localStorage.setItem('_last_kasir', kasir);
 
-  const cartItems = [...cart];
-  cart = []; _checkoutInProgress = false; _currentTotal = 0;
+  const cartItems   = [...cart];
+  const wasDP       = isDP;
+  cart = []; _checkoutInProgress = false; _currentTotal = 0; isDP = false;
   // FIX: flag sudah di-reset di sini, try-finally di bawah sebagai safety net
   updateCartBadge(); renderCart(); hitungTotal();
-  ['diskon-val','uang-bayar'].forEach(id => {
+  ['diskon-val','uang-bayar','dp-nominal'].forEach(id => {
     const el = document.getElementById(id); if (el) el.value = '';
   });
+  const dpCheckbox = document.getElementById('dp-checkbox');
+  if (dpCheckbox) dpCheckbox.checked = false;
+  const dpSection = document.getElementById('dp-section');
+  if (dpSection) dpSection.style.display = 'none';
 
-  toast('✓ Transaksi berhasil!', 'success');
+  toast(wasDP ? '✓ DP berhasil dicatat!' : '✓ Transaksi berhasil!', 'success');
   openModal('modal-nota');
   renderProduk();
   updateKritisCount();
+  if (typeof window.renderRiwayat === 'function') window.renderRiwayat();
+  if (typeof window._laporanModule?.renderPiutang === 'function') window._laporanModule.renderPiutang();
 
   const prefs2 = getData('prefs', { stok_alert: true });
   if (prefs2.stok_alert) cekStokKritisPaskaCheckout(cartItems);
@@ -374,7 +421,11 @@ export function generateNota(trx) {
   if (trx.diskon > 0) n += rightAlign('Diskon :', '-' + fmtRp(trx.diskon)) + '\n';
   n += rightAlign('TOTAL :', fmtRp(trx.total)) + '\n';
   // BUG FIX #4: tampilkan info pembayaran sesuai metode
-  if (trx.metode === 'tunai') {
+  if (trx.status === 'piutang') {
+    n += rightAlign('DP Dibayar :', fmtRp(trx.bayar)) + '\n';
+    n += rightAlign('Sisa Tagihan :', fmtRp(trx.sisa_tagihan)) + '\n';
+    n += rightAlign('Status :', 'BELUM LUNAS') + '\n';
+  } else if (trx.metode === 'tunai') {
     n += rightAlign('Bayar :', fmtRp(trx.bayar)) + '\n';
     n += rightAlign('Kembali :', fmtRp(trx.kembalian)) + '\n';
   } else {
@@ -438,4 +489,5 @@ window._cartModule = {
   addToCart, tambahJasa, changeQty, removeCart, checkout,
   getCart, setPayment, setDiskonMode, hitungTotal, hitungKembalian,
   lihatDetailTrx, cetakNotaTerakhir, shareNota, resetCartState,
+  toggleDP, hitungSisaDP,
 };

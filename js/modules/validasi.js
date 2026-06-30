@@ -164,7 +164,7 @@ export function validasiRestok() {
 }
 
 /** Validasi form Checkout */
-export function validasiCheckout(paymentMethod, total) {
+export function validasiCheckout(paymentMethod, total, isDP = false) {
   const kasir = document.getElementById('kasir-name')?.value.trim();
   let valid   = true;
 
@@ -172,6 +172,23 @@ export function validasiCheckout(paymentMethod, total) {
     fieldError('kasir-name', 'Nama kasir maksimal 50 karakter');
     valid = false;
   }
+
+  if (isDP) {
+    const dp = parseFloat(document.getElementById('dp-nominal')?.value);
+    const el = document.getElementById('dp-nominal');
+    if (el) { el.style.borderColor = ''; el.style.boxShadow = ''; }
+    el?.parentElement?.querySelector('.field-err-msg')?.remove();
+
+    if (isNaN(dp) || dp <= 0) {
+      fieldError('dp-nominal', 'Masukkan jumlah DP');
+      valid = false;
+    } else if (dp >= total) {
+      fieldError('dp-nominal', 'DP harus lebih kecil dari total (gunakan checkout biasa jika lunas)');
+      valid = false;
+    }
+    return valid;
+  }
+
   if (paymentMethod === 'tunai') {
     const bayar = parseFloat(document.getElementById('uang-bayar')?.value);
     const el    = document.getElementById('uang-bayar');

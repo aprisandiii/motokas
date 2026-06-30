@@ -269,6 +269,20 @@
         </div>
       </div>
 
+      <div class="dp-toggle-row">
+        <label class="dp-toggle-label">
+          <input type="checkbox" id="dp-checkbox" onchange="toggleDP(this.checked)">
+          <span>📝 Bayar Sebagian (DP)</span>
+        </label>
+      </div>
+      <div id="dp-section" style="display:none">
+        <input type="number" class="input-full" id="dp-nominal" placeholder="Jumlah DP (Rp)" oninput="hitungSisaDP()">
+        <div class="kembalian-row" id="sisa-dp-row" style="display:none">
+          <span>⏳ Sisa Tagihan</span>
+          <span id="sisa-dp-val">Rp 0</span>
+        </div>
+      </div>
+
       <input type="text" class="input-full" id="kasir-name"   placeholder="Nama kasir (opsional)"           style="margin-top:8px">
       <input type="text" class="input-full" id="mekanik-name" placeholder="Nama mekanik (untuk jasa servis)" style="margin-top:4px">
 
@@ -304,6 +318,9 @@
 
     <!-- Ringkasan Periode -->
     <div id="ringkasan-periode" style="display:none"></div>
+
+    <div class="section-title">⏳ Piutang / Belum Lunas</div>
+    <div id="piutang-list" style="margin-bottom:16px"></div>
 
     <div class="section-title">📤 Export Data</div>
     <div class="export-grid">

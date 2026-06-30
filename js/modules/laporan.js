@@ -143,6 +143,7 @@ export function renderTerlaris() {
 // ── LAPORAN HARIAN ────────────────────────────────────────
 // BUG FIX #1: parse tanggal dengan T00:00:00 agar tidak kena timezone offset
 export function renderLaporan() {
+  renderPiutang();
   const laporan = getData('laporan', {});
   const dari    = document.getElementById('date-dari')?.value;
   const sampai  = document.getElementById('date-sampai')?.value;
@@ -263,17 +264,21 @@ export function renderRiwayat() {
   }
   el.innerHTML = filtered.map(r => {
     const isVoid    = r.status === 'void';
+    const isPiutang = r.status === 'piutang';
     const voidBadge = isVoid ? `<span class="badge-void">VOID</span>` : '';
+    const piutangBadge = isPiutang ? `<span class="badge-piutang">BELUM LUNAS</span>` : '';
     const voidInfo  = isVoid
       ? `<div class="void-info">Dibatalkan: ${escHtml(r.void_alasan || '-')}</div>` : '';
-    const voidBtn   = !isVoid
+    const voidBtn   = (!isVoid && !isPiutang)
       ? `<button class="btn-void" onclick="event.stopPropagation();window._laporanModule.voidTransaksi(${r.id})">🚫 Void</button>` : '';
+    const lunasiBtn = isPiutang
+      ? `<button class="btn-lunasi" onclick="event.stopPropagation();window._laporanModule.bukaLunasi(${r.id})">✅ Lunasi (Sisa ${fmtRp(r.sisa_tagihan)})</button>` : '';
     return `
-    <div class="riwayat-item${isVoid ? ' is-void' : ''}"
+    <div class="riwayat-item${isVoid ? ' is-void' : ''}${isPiutang ? ' is-piutang' : ''}"
          onclick="window._cartModule.lihatDetailTrx(${r.id})" style="cursor:pointer">
       <div class="riwayat-header">
         <div>
-          <div style="font-size:13px;font-weight:600">${escHtml(r.kasir || '-')}${voidBadge}</div>
+          <div style="font-size:13px;font-weight:600">${escHtml(r.kasir || '-')}${voidBadge}${piutangBadge}</div>
           <div class="riwayat-waktu">${r.waktu}</div>
         </div>
         <div style="text-align:right">
@@ -285,7 +290,7 @@ export function renderRiwayat() {
         ${r.items.map(i => `${escHtml(i.nama)} ×${i.qty}`).join(' · ')}
         ${r.diskon > 0 ? `<br>Diskon: ${fmtRp(r.diskon)}` : ''}
       </div>
-      ${voidInfo}${voidBtn}
+      ${voidInfo}${voidBtn}${lunasiBtn}
     </div>`;
   }).join('');
 }
@@ -297,6 +302,7 @@ export function voidTransaksi(trxId) {
   const trx     = riwayat.find(r => r.id === trxId);
   if (!trx)                  { toast('Transaksi tidak ditemukan', 'error'); return; }
   if (trx.status === 'void') { toast('Transaksi sudah dibatalkan', 'error'); return; }
+  if (trx.status === 'piutang') { toast('Lunasi dulu transaksi ini sebelum void', 'error'); return; }
 
   const tglStr   = tglKeyFromLocale(trx.waktu);
   const jamMatch = trx.waktu?.match(/(\d{1,2})[.:](\d{2})/g);
@@ -375,7 +381,9 @@ export function konfirmasiVoid(trxId) {
   if (tglTrx) {
     const laporan = getData('laporan', {});
     if (laporan[tglTrx]) {
-      laporan[tglTrx].omzet = Math.max(0, (laporan[tglTrx].omzet || 0) - trx.total);
+      // Omzet yang tercatat untuk piutang hanya sebesar DP/pembayaran sejauh ini
+      const omzetTercatat = trx.status === 'piutang' ? (trx.bayar || 0) : trx.total;
+      laporan[tglTrx].omzet = Math.max(0, (laporan[tglTrx].omzet || 0) - omzetTercatat);
       laporan[tglTrx].laba  = (laporan[tglTrx].laba  || 0) - (trx.laba || 0);
       laporan[tglTrx].trx   = Math.max(0, (laporan[tglTrx].trx   || 1) - 1);
     }
@@ -393,6 +401,106 @@ export function konfirmasiVoid(trxId) {
   document.getElementById('void-overlay')?.remove();
   renderRiwayat(); renderProduk(); renderDashboard();
   toast('Transaksi berhasil dibatalkan ✓', 'success');
+}
+
+// ── PIUTANG / PELUNASAN DP ──────────────────────────────────
+export function renderPiutang() {
+  const el = document.getElementById('piutang-list');
+  if (!el) return;
+  const riwayat = getData('riwayat', []).filter(r => r.status === 'piutang');
+  if (riwayat.length === 0) {
+    el.innerHTML = '<div class="empty-state-mini">Tidak ada piutang 🎉</div>';
+    return;
+  }
+  const totalPiutang = riwayat.reduce((s, r) => s + (r.sisa_tagihan || 0), 0);
+  el.innerHTML = `
+    <div class="piutang-total-card">
+      <span>Total Piutang</span>
+      <span class="piutang-total-val">${fmtRp(totalPiutang)}</span>
+    </div>
+    ${riwayat.map(r => `
+    <div class="riwayat-item is-piutang" onclick="window._cartModule.lihatDetailTrx(${r.id})" style="cursor:pointer">
+      <div class="riwayat-header">
+        <div>
+          <div style="font-size:13px;font-weight:600">${escHtml(r.kasir || '-')} <span class="badge-piutang">BELUM LUNAS</span></div>
+          <div class="riwayat-waktu">${r.waktu}</div>
+        </div>
+        <div style="text-align:right">
+          <div class="riwayat-total">${fmtRp(r.total)}</div>
+          <div style="font-size:11px;color:var(--red);font-weight:600">Sisa: ${fmtRp(r.sisa_tagihan)}</div>
+        </div>
+      </div>
+      <div class="riwayat-detail">
+        ${r.items.map(i => `${escHtml(i.nama)} ×${i.qty}`).join(' · ')}
+      </div>
+      <button class="btn-lunasi" onclick="event.stopPropagation();window._laporanModule.bukaLunasi(${r.id})">✅ Lunasi Sekarang</button>
+    </div>`).join('')}
+  `;
+}
+
+export function bukaLunasi(trxId) {
+  const riwayat = getData('riwayat', []);
+  const trx     = riwayat.find(r => r.id === trxId);
+  if (!trx)                       { toast('Transaksi tidak ditemukan', 'error'); return; }
+  if (trx.status !== 'piutang')   { toast('Transaksi ini sudah lunas', 'error'); return; }
+
+  document.getElementById('lunasi-overlay')?.remove();
+  const overlay = document.createElement('div');
+  overlay.id        = 'lunasi-overlay';
+  overlay.className = 'overlay-fullscreen';
+  overlay.innerHTML = `
+    <div class="dialog-card">
+      <div class="dialog-icon">✅</div>
+      <h3>Lunasi Pembayaran</h3>
+      <p>Total Tagihan: <strong>${fmtRp(trx.total)}</strong><br>
+         DP Diterima: ${fmtRp(trx.bayar)}<br>
+         Sisa Tagihan: <strong style="color:var(--red)">${fmtRp(trx.sisa_tagihan)}</strong></p>
+      <label>Metode pelunasan</label>
+      <select id="lunasi-metode" class="dialog-input">
+        <option value="tunai">Tunai</option>
+        <option value="transfer">Transfer</option>
+        <option value="qris">QRIS</option>
+      </select>
+      <div class="dialog-actions">
+        <button onclick="document.getElementById('lunasi-overlay').remove()">Batal</button>
+        <button style="background:var(--green);color:#000;font-weight:700;border:none" onclick="window._laporanModule.konfirmasiLunasi(${trxId})">Konfirmasi Lunas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+  overlay.addEventListener('click', e => { if (e.target === overlay) overlay.remove(); });
+}
+
+export function konfirmasiLunasi(trxId) {
+  const metode = document.getElementById('lunasi-metode')?.value || 'tunai';
+  let riwayat  = getData('riwayat', []);
+  const idx    = riwayat.findIndex(r => r.id === trxId);
+  if (idx < 0)                          { toast('Transaksi tidak ditemukan', 'error'); return; }
+  if (riwayat[idx].status !== 'piutang'){ toast('Transaksi sudah lunas', 'error');      return; }
+
+  const trx      = riwayat[idx];
+  const sisa     = trx.sisa_tagihan || 0;
+
+  // Tambahkan sisa tagihan ke laporan hari ini (hari pelunasan, bukan hari transaksi awal)
+  const now      = new Date();
+  const tglLunas = tglKey(now);
+  const laporan  = getData('laporan', {});
+  if (!laporan[tglLunas]) laporan[tglLunas] = { omzet: 0, laba: 0, trx: 0, terlaris: {} };
+  laporan[tglLunas].omzet += sisa;
+  setData('laporan', laporan);
+
+  riwayat[idx] = {
+    ...trx,
+    status:         'selesai',
+    bayar:          trx.total,
+    sisa_tagihan:   0,
+    metode_pelunasan: metode,
+    lunas_waktu:    now.toLocaleString('id-ID'),
+  };
+  setData('riwayat', riwayat);
+
+  document.getElementById('lunasi-overlay')?.remove();
+  renderRiwayat(); renderPiutang(); renderDashboard();
+  toast('Pembayaran lunas ✓', 'success');
 }
 
 // ── EXPORT ────────────────────────────────────────────────
@@ -555,6 +663,7 @@ function escHtml(str) {
 window._laporanModule = {
   renderDashboard, renderLaporan, renderRiwayat, renderChart,
   voidTransaksi, konfirmasiVoid,
+  renderPiutang, bukaLunasi, konfirmasiLunasi,
   exportCSV, exportTXT, exportJSON, restoreJSON,
   resetLaporan, resetRiwayat, resetAllData,
   kirimSheets, tesSheets,

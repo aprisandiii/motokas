@@ -1310,3 +1310,20 @@ select[style*="borderColor: var(--red)"] {
   color: var(--text3);
   font-size: 13px;
 }
+
+/* ── KRITIS LIST: tombol lihat semua ────────────────────── */
+.btn-kritis-toggle {
+  width: 100%;
+  margin-top: 8px;
+  padding: 9px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--bg3);
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.btn-kritis-toggle:hover { background: var(--bg4); color: var(--accent); }
+#kritis-sisa { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; }

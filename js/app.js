@@ -23,7 +23,8 @@ import { renderDashboard, renderLaporan, renderRiwayat,
          voidTransaksi, konfirmasiVoid, exportCSV, exportTXT,
          exportJSON, restoreJSON, resetLaporan, resetRiwayat,
          resetAllData, kirimSheets, tesSheets,
-         renderTotalAset, renderPiutang, bukaLunasi, konfirmasiLunasi }  from './modules/laporan.js';
+         renderTotalAset, renderPiutang, bukaLunasi, konfirmasiLunasi,
+         renderLaporanPengeluaran }  from './modules/laporan.js';
 import { pinInput, pinDel, checkPin, gantiPIN,
          resetPinPrompt, lockApp, initPinLockState,
          updatePinDots, showPinStatus }          from './modules/pin.js';
@@ -84,6 +85,7 @@ Object.assign(window, {
   // Laporan
   renderDashboard, renderLaporan, renderRiwayat,
   renderTotalAset, renderPiutang, bukaLunasi, konfirmasiLunasi,
+  renderLaporanPengeluaran,
   voidTransaksi, konfirmasiVoid,
   exportCSV, exportTXT, exportJSON, restoreJSON,
   resetLaporan, resetRiwayat, kirimSheets, tesSheets,

@@ -23,12 +23,18 @@ export function renderDashboard() {
   const tgl     = tglKey();
   const hari    = laporan[tgl] || { omzet: 0, laba: 0, trx: 0 };
   const setText = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+
+  // Kurangi pengeluaran hari ini dari laba
+  const pengeluaranHariIni = getData('pengeluaran', {})[tgl] || [];
+  const totalPengeluaran   = pengeluaranHariIni.reduce((s, e) => s + (e.nominal || 0), 0);
+  const labaBersih         = hari.laba - totalPengeluaran;
+
   setText('stat-omzet', fmtRpShort(hari.omzet));
-  setText('stat-laba',  fmtRpShort(hari.laba));
+  setText('stat-laba',  fmtRpShort(labaBersih));
   setText('stat-trx',   hari.trx);
   // FIX: warna laba minus merah
   const labaEl = document.getElementById('stat-laba');
-  if (labaEl) labaEl.dataset.minus = hari.laba < 0 ? 'true' : 'false';
+  if (labaEl) labaEl.dataset.minus = labaBersih < 0 ? 'true' : 'false';
   updateKritisCount();
   renderTotalAset();
   renderChart();
@@ -377,18 +383,32 @@ export function konfirmasiVoid(trxId) {
   setData('produk', produk);
 
   // Kurangi laporan harian
-  const tglTrx = tglKeyFromLocale(trx.waktu);
-  if (tglTrx) {
-    const laporan = getData('laporan', {});
-    if (laporan[tglTrx]) {
-      // Omzet yang tercatat untuk piutang hanya sebesar DP/pembayaran sejauh ini
+  // Jika trx ini dulunya piutang lalu sudah dilunasi (ada lunas_waktu),
+  // omzetnya tercatat di 2 hari berbeda: DP di hari transaksi, sisa di hari pelunasan.
+  const laporan = getData('laporan', {});
+  if (trx.lunas_waktu) {
+    const tglDP    = tglKeyFromLocale(trx.waktu);
+    const tglLunas = tglKeyFromLocale(trx.lunas_waktu);
+    // Kurangi DP dari hari transaksi
+    if (tglDP && laporan[tglDP]) {
+      laporan[tglDP].omzet = Math.max(0, (laporan[tglDP].omzet || 0) - (trx.dp_diterima ?? trx.bayar));
+      laporan[tglDP].laba  = (laporan[tglDP].laba || 0) - (trx.laba || 0);
+      laporan[tglDP].trx   = Math.max(0, (laporan[tglDP].trx   || 1) - 1);
+    }
+    // Kurangi sisa pelunasan dari hari pelunasan
+    if (tglLunas && laporan[tglLunas] && tglLunas !== tglDP) {
+      laporan[tglLunas].omzet = Math.max(0, (laporan[tglLunas].omzet || 0) - (trx.sisa_dilunasi ?? 0));
+    }
+  } else {
+    const tglTrx = tglKeyFromLocale(trx.waktu);
+    if (tglTrx && laporan[tglTrx]) {
       const omzetTercatat = trx.status === 'piutang' ? (trx.bayar || 0) : trx.total;
       laporan[tglTrx].omzet = Math.max(0, (laporan[tglTrx].omzet || 0) - omzetTercatat);
       laporan[tglTrx].laba  = (laporan[tglTrx].laba  || 0) - (trx.laba || 0);
       laporan[tglTrx].trx   = Math.max(0, (laporan[tglTrx].trx   || 1) - 1);
     }
-    setData('laporan', laporan);
   }
+  setData('laporan', laporan);
 
   riwayat[idx] = {
     ...trx,
@@ -493,6 +513,7 @@ export function konfirmasiLunasi(trxId) {
     status:         'selesai',
     bayar:          trx.total,
     sisa_tagihan:   0,
+    sisa_dilunasi:  sisa,
     metode_pelunasan: metode,
     lunas_waktu:    now.toLocaleString('id-ID'),
   };

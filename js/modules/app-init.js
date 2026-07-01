@@ -7,6 +7,7 @@ import { getData, setData }                from './storage.js';
 import { loadSettings }                    from './settings.js';
 import { renderProduk, updateKritisCount } from './produk.js';
 import { renderDashboard, renderLaporan, renderRiwayat } from './laporan.js';
+import { renderPengeluaran } from './pengeluaran.js';
 import { renderCart, updateCartBadge }     from './cart.js';
 
 export function initApp() {
@@ -17,6 +18,7 @@ export function initApp() {
 
   loadSettings();
   renderDashboard();
+  renderPengeluaran();
   renderProduk();
   renderLaporan();
   renderRiwayat();

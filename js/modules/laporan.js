@@ -148,8 +148,96 @@ export function renderTerlaris() {
 
 // ── LAPORAN HARIAN ────────────────────────────────────────
 // BUG FIX #1: parse tanggal dengan T00:00:00 agar tidak kena timezone offset
+export function renderLaporanPengeluaran() {
+  const sumEl  = document.getElementById('laporan-pengeluaran-summary');
+  const listEl = document.getElementById('laporan-pengeluaran-list');
+  if (!sumEl || !listEl) return;
+
+  const dari   = document.getElementById('date-dari')?.value;
+  const sampai = document.getElementById('date-sampai')?.value;
+
+  const allData = getData('pengeluaran', {});
+
+  // Kumpulkan semua entri yang sesuai filter tanggal
+  const entries = [];
+  Object.entries(allData).forEach(([tgl, list]) => {
+    if (dari   && tgl < dari)   return;
+    if (sampai && tgl > sampai) return;
+    list.forEach(e => entries.push({ ...e, tgl }));
+  });
+
+  if (entries.length === 0) {
+    sumEl.innerHTML  = '';
+    listEl.innerHTML = '<div class="pengeluaran-kosong">Tidak ada pengeluaran di periode ini</div>';
+    return;
+  }
+
+  // Total & per kategori
+  const total  = entries.reduce((s, e) => s + (e.nominal || 0), 0);
+  const perKat = {};
+  const KATEGORI = [
+    { id: 'stok',        label: '📦 Beli Stok',    warna: '#818cf8' },
+    { id: 'operasional', label: '🔌 Operasional',  warna: '#60a5fa' },
+    { id: 'gaji',        label: '👷 Gaji',          warna: '#34d399' },
+    { id: 'lainnya',     label: '📝 Lain-lain',     warna: '#f59e0b' },
+  ];
+  entries.forEach(e => {
+    if (!perKat[e.kategori]) perKat[e.kategori] = 0;
+    perKat[e.kategori] += e.nominal || 0;
+  });
+
+  sumEl.innerHTML = `
+    <div class="pengeluaran-total-row">
+      <span>Total Pengeluaran</span>
+      <span class="pengeluaran-total-val">${fmtRp(total)}</span>
+    </div>
+    <div class="pengeluaran-kat-grid">
+      ${KATEGORI.filter(k => perKat[k.id]).map(k => `
+        <div class="pengeluaran-kat-chip" style="border-color:${k.warna}20;background:${k.warna}12">
+          <span>${k.label}</span>
+          <span style="color:${k.warna};font-weight:700">${fmtRp(perKat[k.id])}</span>
+        </div>`).join('')}
+    </div>`;
+
+  // List per hari, diurutkan terbaru dulu
+  const perHari = {};
+  entries.forEach(e => {
+    if (!perHari[e.tgl]) perHari[e.tgl] = [];
+    perHari[e.tgl].push(e);
+  });
+
+  listEl.innerHTML = Object.keys(perHari).sort().reverse().map(tgl => {
+    const hariList = perHari[tgl];
+    const hariTotal = hariList.reduce((s, e) => s + (e.nominal || 0), 0);
+    const [yyyy, mm, dd] = tgl.split('-');
+    const tglDisplay = `${dd}/${mm}/${yyyy}`;
+    return `
+    <div class="pengeluaran-hari-group">
+      <div class="pengeluaran-hari-header">
+        <span>${tglDisplay}</span>
+        <span style="color:var(--red);font-weight:700">${fmtRp(hariTotal)}</span>
+      </div>
+      ${hariList.map(e => {
+        const kat = KATEGORI.find(k => k.id === e.kategori) || KATEGORI[3];
+        return `
+        <div class="pengeluaran-item">
+          <div class="pengeluaran-item-left">
+            <span class="pengeluaran-kat-badge" style="background:${kat.warna}20;color:${kat.warna}">${kat.label}</span>
+            <div class="pengeluaran-keterangan">${escHtml(e.keterangan || '-')}</div>
+            <div class="pengeluaran-waktu">${e.waktu || ''}</div>
+          </div>
+          <div class="pengeluaran-item-right">
+            <div class="pengeluaran-nominal">${fmtRp(e.nominal)}</div>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>`;
+  }).join('');
+}
+
 export function renderLaporan() {
   renderPiutang();
+  renderLaporanPengeluaran();
   const laporan = getData('laporan', {});
   const dari    = document.getElementById('date-dari')?.value;
   const sampai  = document.getElementById('date-sampai')?.value;
@@ -683,6 +771,7 @@ function escHtml(str) {
 
 window._laporanModule = {
   renderDashboard, renderLaporan, renderRiwayat, renderChart,
+  renderLaporanPengeluaran,
   voidTransaksi, konfirmasiVoid,
   renderPiutang, bukaLunasi, konfirmasiLunasi,
   exportCSV, exportTXT, exportJSON, restoreJSON,

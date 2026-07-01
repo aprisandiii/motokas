@@ -30,6 +30,9 @@ import { pinInput, pinDel, checkPin, gantiPIN,
 import { initApp }                               from './modules/app-init.js';
 import { setPreset, renderRingkasanPeriode }    from './modules/laporan-periode.js';
 import { startTour, resetTour, cekTourBaru }    from './modules/onboarding.js';
+import { renderPengeluaran, bukaFormPengeluaran,
+         simpanPengeluaran, hapusPengeluaran,
+         updateStatPengeluaran }               from './modules/pengeluaran.js';
 import { validasiLogin, validasiRegister, validasiSettings,
          bindClearOnInput }                            from './modules/validasi.js';
 
@@ -50,6 +53,7 @@ Object.assign(window, {
   navTo: (page, btn) => {
     navTo(page, btn);
     if (page === 'dashboard') renderDashboard();
+    if (page === 'dashboard') renderPengeluaran();
     if (page === 'kasir')     { renderCart(); hitungTotal(); updateCartBadge(); }
     if (page === 'laporan') {
       renderLaporan(); renderRiwayat();
@@ -98,6 +102,9 @@ Object.assign(window, {
   // Tour
   startTour, resetTour,
   resetCartState,
+  // Pengeluaran
+  bukaFormPengeluaran, simpanPengeluaran,
+  hapusPengeluaran, renderPengeluaran,
   // Validasi
   checkHPPWarning: () => {
     const hpp   = parseFloat(document.getElementById('prod-hpp')?.value)   || 0;

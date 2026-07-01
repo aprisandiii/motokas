@@ -124,7 +124,7 @@ export function simpanPengeluaran() {
   document.getElementById('form-pengeluaran-overlay')?.remove();
   toast('Pengeluaran dicatat ✓', 'success');
   renderPengeluaran();
-  updateStatPengeluaran();
+  if (typeof window.renderDashboard === 'function') window.renderDashboard();
 }
 
 export function hapusPengeluaran(idx) {
@@ -136,7 +136,7 @@ export function hapusPengeluaran(idx) {
   setData('pengeluaran', all);
   toast('Pengeluaran dihapus', 'success');
   renderPengeluaran();
-  updateStatPengeluaran();
+  if (typeof window.renderDashboard === 'function') window.renderDashboard();
 }
 
 // Update stat card laba di dashboard — kurangi pengeluaran hari ini
